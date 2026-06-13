@@ -1,6 +1,6 @@
-import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-1';
+import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-2';
 
-// Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260614-1';
+// Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260614-2';
 (function initLoreBookController() {
     const hostWindow = window.parent ?? window;
     const hostDocument = hostWindow.document;
@@ -276,11 +276,13 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
     const css = `
         .lbc-root, .lbc-root * { box-sizing: border-box; }
         .lbc-root {
-            --lbc-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor, #20242b) 92%, transparent);
-            --lbc-surface: color-mix(in srgb, var(--SmartThemeBodyColor, #303640) 84%, transparent);
-            --lbc-border: color-mix(in srgb, var(--SmartThemeBorderColor, #8b95a5) 42%, transparent);
+            --lbc-bg: var(--SmartThemeBlurTintColor, #20242b);
             --lbc-text: var(--SmartThemeBodyColor, #f1f3f5);
-            --lbc-muted: color-mix(in srgb, var(--SmartThemeBodyColor, #f1f3f5) 62%, transparent);
+            --lbc-surface: color-mix(in srgb, var(--lbc-bg) 92%, var(--lbc-text) 8%);
+            --lbc-surface-hover: color-mix(in srgb, var(--lbc-bg) 84%, var(--lbc-text) 16%);
+            --lbc-border: color-mix(in srgb, var(--lbc-bg) 72%, var(--lbc-text) 28%);
+            --lbc-muted: color-mix(in srgb, var(--lbc-text) 65%, var(--lbc-bg) 35%);
+            --lbc-switch-off: color-mix(in srgb, var(--lbc-bg) 70%, var(--lbc-text) 30%);
             --lbc-accent: var(--SmartThemeQuoteColor, #79a7ff);
             position: fixed;
             inset: 0;
@@ -347,7 +349,7 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
             background: transparent;
             font-size: 20px;
         }
-        .lbc-icon-button:hover, .lbc-tab:hover, .lbc-action:hover, .lbc-row:hover { background: rgb(255 255 255 / 7%); }
+        .lbc-icon-button:hover, .lbc-tab:hover, .lbc-action:hover, .lbc-row:hover { background: var(--lbc-surface-hover); }
         .lbc-tabs {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -396,7 +398,7 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
             min-height: 34px;
             padding: 0 12px;
             border-radius: 9px;
-            background: rgb(255 255 255 / 6%);
+            background: var(--lbc-surface-hover);
         }
         .lbc-row {
             min-height: 46px;
@@ -404,7 +406,7 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
             align-items: center;
             gap: 12px;
             padding: 7px 10px 7px 13px;
-            border-bottom: 1px solid rgb(255 255 255 / 5%);
+            border-bottom: 1px solid var(--lbc-border);
         }
         .lbc-row:last-child { border-bottom: 0; }
         .lbc-row-label { min-width: 0; flex: 1; overflow-wrap: anywhere; }
@@ -415,7 +417,7 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
             height: 28px;
             flex: 0 0 auto;
             border-radius: 999px;
-            background: rgb(255 255 255 / 16%);
+            background: var(--lbc-switch-off);
             transition: background 130ms ease;
         }
         .lbc-switch::after {
