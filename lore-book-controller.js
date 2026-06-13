@@ -1,4 +1,4 @@
-import { createLoreBookStore } from './lore-book-controller-store.js';
+import { createLoreBookStore } from './lore-book-controller-store.js?v=20260613-3';
 
 // Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260613';
 (function() {
@@ -350,14 +350,26 @@ import { createLoreBookStore } from './lore-book-controller-store.js';
                 0 8px 40px rgba(0, 0, 0, 0.7),
                 inset 0 1px 0 rgba(255, 255, 255, 0.02);
         }
-        .dragon-panel.visible {
+        .dragon-panel.visible,
+        .dragon-panel.closing {
             display: flex;
             flex-direction: column;
-            animation: panel-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            will-change: opacity, transform;
         }
-        @keyframes panel-rise {
-            from { opacity: 0; transform: translateY(30px) scale(0.96); filter: blur(8px); }
-            to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        .dragon-panel.visible {
+            animation: panel-open 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .dragon-panel.closing {
+            pointer-events: none !important;
+            animation: panel-close 160ms cubic-bezier(0.4, 0, 1, 1) both;
+        }
+        @keyframes panel-open {
+            from { opacity: 0; transform: translateY(10px) scale(0.985); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes panel-close {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to   { opacity: 0; transform: translateY(8px) scale(0.985); }
         }
 
         /* Hex mesh background */
@@ -780,7 +792,6 @@ import { createLoreBookStore } from './lore-book-controller-store.js';
         .seal-particles, .seal-ring, .panel-scan, .panel-noise { display: none !important; }
         .dragon-seal.idle, .status-beacon, .sigil-ring { animation: none !important; }
         .dragon-panel { backdrop-filter: blur(12px) saturate(1.1); }
-        .dragon-panel.visible { animation-duration: 0.18s; }
     `;
 
     // Inject CSS
@@ -1151,9 +1162,16 @@ import { createLoreBookStore } from './lore-book-controller-store.js';
     }
 
     function closePanel() {
+        if (!panel.classList.contains('visible')) return;
+        panel.classList.add('closing');
         panel.classList.remove('visible');
-        setTimeout(() => { panel.style.display = 'none'; }, 600);
     }
+
+    panel.addEventListener('animationend', (event) => {
+        if (event.target !== panel || event.animationName !== 'panel-close' || !panel.classList.contains('closing')) return;
+        panel.classList.remove('closing');
+        panel.style.display = 'none';
+    });
 
     function switchPage(pageKey) {
         if (currentPage === pageKey) return;
@@ -1182,6 +1200,7 @@ import { createLoreBookStore } from './lore-book-controller-store.js';
         if (drag.isDragging()) return;
         if (!panel.classList.contains('visible')) {
             positionPanel();
+            panel.classList.remove('closing');
             panel.style.display = 'flex';
             panel.offsetHeight;
             panel.classList.add('visible');
