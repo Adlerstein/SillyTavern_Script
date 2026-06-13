@@ -1,104 +1,106 @@
-function normalizeUid(uid) {
-    return String(uid ?? '').trim();
+function uidKey(value) {
+    return String(value ?? '').trim();
 }
 
-function getEntry(data, uid) {
-    const normalizedUid = normalizeUid(uid);
-    const entries = data?.entries;
-
-    if (!normalizedUid || !entries) {
+function findEntry(book, uid) {
+    const key = uidKey(uid);
+    const entries = book?.entries;
+    if (!key || !entries) {
         return null;
     }
 
-    if (!Array.isArray(entries) && entries[normalizedUid]) {
-        return entries[normalizedUid];
+    if (!Array.isArray(entries) && entries[key]) {
+        return entries[key];
     }
 
-    return Object.values(entries).find(entry => normalizeUid(entry?.uid) === normalizedUid) ?? null;
+    return Object.values(entries).find(entry => uidKey(entry?.uid) === key) ?? null;
 }
 
-function getEntryState(data, uid) {
-    const entry = getEntry(data, uid);
+function findLegacyEntry(book, uid) {
+    const key = uidKey(uid);
+    const entries = book?.originalData?.entries;
+    if (!key || !Array.isArray(entries)) {
+        return null;
+    }
+
+    return entries.find(entry => uidKey(entry?.uid ?? entry?.id) === key) ?? null;
+}
+
+function readEnabled(book, uid) {
+    const entry = findEntry(book, uid);
     return entry ? entry.disable !== true : null;
 }
 
-function getOriginalEntry(data, uid) {
-    const normalizedUid = normalizeUid(uid);
-    const entries = data?.originalData?.entries;
-
-    if (!normalizedUid || !Array.isArray(entries)) {
-        return null;
-    }
-
-    return entries.find(entry => normalizeUid(entry?.uid ?? entry?.id) === normalizedUid) ?? null;
-}
-
-export function createLoreBookStore({ bookName, loadWorldInfo, saveWorldInfo }) {
-    let data = null;
-    let loadPromise = null;
-    let writeQueue = Promise.resolve();
+export function createLoreBookStore({
+    bookName,
+    loadWorldInfo,
+    saveWorldInfo,
+    writeDelay = 60,
+}) {
+    let book = null;
+    let loading = null;
+    let timer = null;
+    let saveQueue = Promise.resolve();
+    const pendingStates = new Map();
+    const pendingRequests = [];
 
     async function load({ force = false } = {}) {
         if (force) {
-            data = null;
-            loadPromise = null;
+            book = null;
+            loading = null;
         }
-
-        if (data) {
-            return data;
+        if (book) {
+            return book;
         }
-
-        if (!loadPromise) {
-            loadPromise = Promise.resolve(loadWorldInfo(bookName))
+        if (!loading) {
+            loading = Promise.resolve(loadWorldInfo(bookName))
                 .then(result => {
                     if (!result?.entries) {
                         throw new Error(`World book not found: ${bookName}`);
                     }
-                    data = result;
-                    return data;
+                    book = result;
+                    return book;
                 })
                 .finally(() => {
-                    loadPromise = null;
+                    loading = null;
                 });
         }
-
-        return loadPromise;
+        return loading;
     }
 
-    function peekState(uid) {
-        return getEntryState(data, uid);
-    }
+    async function commitPending() {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+        if (!pendingStates.size) {
+            return;
+        }
 
-    async function getStates(uids, options) {
-        const worldBook = await load(options);
-        return new Map(uids.map(uid => [normalizeUid(uid), getEntryState(worldBook, uid)]));
-    }
+        const changes = new Map(pendingStates);
+        const requests = pendingRequests.splice(0);
+        pendingStates.clear();
 
-    function setStates(uids, enable) {
-        const normalizedUids = [...new Set(uids.map(normalizeUid).filter(Boolean))];
-
-        writeQueue = writeQueue.catch(() => undefined).then(async () => {
-            const worldBook = await load();
-            const beforeChange = structuredClone(worldBook);
+        saveQueue = saveQueue.catch(() => undefined).then(async () => {
+            const currentBook = await load();
+            const snapshot = structuredClone(currentBook);
             const changed = [];
             const missing = [];
 
-            for (const uid of normalizedUids) {
-                const entry = getEntry(worldBook, uid);
+            for (const [uid, enabled] of changes) {
+                const entry = findEntry(currentBook, uid);
                 if (!entry) {
                     missing.push(uid);
                     continue;
                 }
 
-                const nextDisabled = !enable;
-                const originalEntry = getOriginalEntry(worldBook, uid);
-                const canonicalChanged = entry.disable !== nextDisabled;
-                const originalChanged = originalEntry && originalEntry.enabled !== enable;
-
-                if (canonicalChanged || originalChanged) {
-                    entry.disable = nextDisabled;
-                    if (originalEntry) {
-                        originalEntry.enabled = enable;
+                const legacyEntry = findLegacyEntry(currentBook, uid);
+                const canonicalChanged = entry.disable !== !enabled;
+                const legacyChanged = legacyEntry && legacyEntry.enabled !== enabled;
+                if (canonicalChanged || legacyChanged) {
+                    entry.disable = !enabled;
+                    if (legacyEntry) {
+                        legacyEntry.enabled = enabled;
                     }
                     changed.push(uid);
                 }
@@ -106,9 +108,9 @@ export function createLoreBookStore({ bookName, loadWorldInfo, saveWorldInfo }) 
 
             if (changed.length) {
                 try {
-                    await saveWorldInfo(bookName, structuredClone(worldBook), true, { refreshEditor: true });
+                    await saveWorldInfo(bookName, structuredClone(currentBook), true, { refreshEditor: true });
                 } catch (error) {
-                    data = beforeChange;
+                    book = snapshot;
                     throw error;
                 }
             }
@@ -116,14 +118,40 @@ export function createLoreBookStore({ bookName, loadWorldInfo, saveWorldInfo }) 
             return { changed, missing };
         });
 
-        return writeQueue;
+        try {
+            const result = await saveQueue;
+            requests.forEach(request => request.resolve(result));
+        } catch (error) {
+            requests.forEach(request => request.reject(error));
+        }
+    }
+
+    function scheduleCommit() {
+        if (!timer) {
+            timer = setTimeout(commitPending, writeDelay);
+        }
+    }
+
+    function setStates(uids, enabled) {
+        const keys = [...new Set(uids.map(uidKey).filter(Boolean))];
+        keys.forEach(uid => pendingStates.set(uid, Boolean(enabled)));
+
+        const result = new Promise((resolve, reject) => {
+            pendingRequests.push({ resolve, reject });
+        });
+        scheduleCommit();
+        return result;
     }
 
     return {
-        getStates,
+        flush: commitPending,
+        getStates: async (uids, options) => {
+            const currentBook = await load(options);
+            return new Map(uids.map(uid => [uidKey(uid), readEnabled(currentBook, uid)]));
+        },
         load,
-        peekState,
-        setState: (uid, enable) => setStates([uid], enable),
+        peekState: uid => readEnabled(book, uid),
+        setState: (uid, enabled) => setStates([uid], enabled),
         setStates,
     };
 }
