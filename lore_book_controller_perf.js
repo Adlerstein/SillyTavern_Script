@@ -16,36 +16,41 @@ const PERF_CONFIG = {
 };
 
 const PERF_CSS = `
-/* ===== lore_book_controller performance mode ===== */
-.dragon-seal,
-.dragon-seal *,
-.dragon-panel,
-.dragon-panel * {
-  animation: none !important;
-  transition: none !important;
-}
+/* ===== lore_book_controller safe performance mode ===== */
 
+/* 面板仍然是主要卡顿源，先关掉高成本模糊和阴影 */
 .dragon-panel {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
 }
 
+/* 关闭动画，但不要隐藏悬浮球内部结构 */
+.dragon-panel,
+.dragon-panel *,
+.dragon-seal,
+.dragon-seal * {
+  animation-duration: 0s !important;
+  animation-iteration-count: 1 !important;
+}
+
+/* transition 不完全关闭，避免 hover 状态被打断导致图标消失 */
+.dragon-panel,
+.dragon-panel * {
+  transition-duration: 0s !important;
+}
+
+/* 去掉重滤镜，但保留图标层本身 */
 .dragon-seal,
 .dragon-seal svg,
 .dragon-seal svg * {
   filter: none !important;
 }
 
+/* 只隐藏面板背景装饰，不动悬浮球图标相关层 */
 .panel-hex-mesh,
 .panel-noise,
-.panel-bottom-glow,
-.seal-particles,
-.sigil-ring,
-.seal-glow,
-.seal-aura,
-.beacon-pulse,
-.dot-pulse {
+.panel-bottom-glow {
   display: none !important;
 }
 
