@@ -1,33 +1,29 @@
-import { createLoreBookStore } from './lore-book-controller-store.js?v=20260613-3';
+import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-1';
 
-// Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260613';
-(function() {
-    const parentWin = window.parent ?? window;
-    const parentDoc = parentWin.document;
-    const scriptId = typeof getScriptId === 'function' ? getScriptId() : 'lore-book-controller-local';
-    const cleanupKey = '__loreBookControllerLocalCleanup';
-    parentWin[cleanupKey]?.();
-    const listenerController = new parentWin.AbortController();
-    const listenerOptions = { signal: listenerController.signal };
-    parentWin[cleanupKey] = () => listenerController.abort();
+// Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260614-1';
+(function initLoreBookController() {
+    const hostWindow = window.parent ?? window;
+    const hostDocument = hostWindow.document;
+    const scriptId = typeof globalThis.getScriptId === 'function' ? globalThis.getScriptId() : 'lore-book-controller-local';
+    const cleanupKey = '__loreBookControllerCleanup';
 
-    console.log('[悬浮球 JSON版本] 脚本开始加载...');
+    hostWindow[cleanupKey]?.();
+    hostDocument.querySelectorAll(`[data-lbc-owner="${scriptId}"]`).forEach(node => node.remove());
 
-    const oldRoots = parentDoc.querySelectorAll(`[script_id="${scriptId}"]`);
-    oldRoots.forEach(el => el.remove());
-
+    const events = new hostWindow.AbortController();
+    const eventOptions = { signal: events.signal };
     const BOOK_FILE = '肚子疼和乐扣的龙族世界书';
-    const getContext = () => parentWin.SillyTavern?.getContext?.() ?? globalThis.SillyTavern?.getContext?.();
-    const loreBookStore = createLoreBookStore({
+    const getContext = () => hostWindow.SillyTavern?.getContext?.() ?? globalThis.SillyTavern?.getContext?.();
+    const store = createLoreBookStore({
         bookName: BOOK_FILE,
-        loadWorldInfo: async name => {
+        loadWorldInfo: name => {
             const context = getContext();
             if (typeof context?.loadWorldInfo !== 'function') {
                 throw new Error('SillyTavern.getContext().loadWorldInfo is unavailable');
             }
             return context.loadWorldInfo(name);
         },
-        saveWorldInfo: async (...args) => {
+        saveWorldInfo: (...args) => {
             const context = getContext();
             if (typeof context?.saveWorldInfo !== 'function') {
                 throw new Error('SillyTavern.getContext().saveWorldInfo is unavailable');
@@ -35,6 +31,7 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260613-
             return context.saveWorldInfo(...args);
         },
     });
+
     const BOOK_SECTIONS = [
         {
             id: 'prequel', label: '龙族前传：冰海王座', icon: '○',
@@ -270,960 +267,508 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260613-
         }
     ];
 
-    const STYLES = `
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+    const pages = {
+        story: { label: '剧情', sections: BOOK_SECTIONS },
+        dlc: { label: 'DLC', sections: DLC_SECTIONS },
+        characters: { label: '人物', sections: CHARACTER_SECTIONS },
+    };
 
-        /* ===== DRAGON SEAL (floating ball - untouched) ===== */
-        .dragon-seal {
-            position: fixed !important;
-            bottom: 40px !important;
-            right: 40px !important;
-            width: 72px !important;
-            height: 80px !important;
-            cursor: pointer !important;
-            z-index: 2147483647 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            user-select: none !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
-            filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.4)) drop-shadow(0 0 30px rgba(212, 175, 55, 0.15));
-            transition: filter 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
-        }
-        .dragon-seal:hover {
-            filter: drop-shadow(0 0 18px rgba(212, 175, 55, 0.7)) drop-shadow(0 0 50px rgba(212, 175, 55, 0.3)) !important;
-            transform: scale(1.08) !important;
-        }
-        .dragon-seal:active { transform: scale(0.96) !important; }
-        .seal-hex { position: relative; width: 72px; height: 80px; }
-        .seal-hex svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-        .seal-glyph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2; }
-        .seal-glyph span {
-            font-family: 'Noto Serif SC', 'SimSun', serif;
-            font-size: 1.7rem; font-weight: 900;
-            background: linear-gradient(180deg, #f5e6a3 0%, #d4af37 40%, #b8860b 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-            filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6));
-            line-height: 1; transform: translateY(-1px);
-        }
-        .seal-particles { position: absolute; inset: -12px; z-index: 1; animation: seal-orbit 12s linear infinite; }
-        .seal-particles .dot {
-            position: absolute; width: 3px; height: 3px; border-radius: 50%;
-            background: #d4af37; box-shadow: 0 0 6px #d4af37, 0 0 12px rgba(212, 175, 55, 0.4);
-        }
-        .seal-particles .dot:nth-child(1) { top: 0; left: 50%; animation: dot-pulse 2s 0s ease-in-out infinite; }
-        .seal-particles .dot:nth-child(2) { top: 25%; right: 0; animation: dot-pulse 2s 0.4s ease-in-out infinite; }
-        .seal-particles .dot:nth-child(3) { bottom: 25%; right: 0; animation: dot-pulse 2s 0.8s ease-in-out infinite; }
-        .seal-particles .dot:nth-child(4) { bottom: 0; left: 50%; animation: dot-pulse 2s 1.2s ease-in-out infinite; }
-        .seal-particles .dot:nth-child(5) { bottom: 25%; left: 0; animation: dot-pulse 2s 1.6s ease-in-out infinite; }
-        .seal-particles .dot:nth-child(6) { top: 25%; left: 0; animation: dot-pulse 2s 2.0s ease-in-out infinite; }
-        @keyframes seal-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes dot-pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.5); } }
-        .seal-ring { position: absolute; inset: -6px; border: 1px solid rgba(212, 175, 55, 0.15); border-radius: 50%; animation: ring-spin 20s linear infinite; }
-        .seal-ring::before { content: ''; position: absolute; top: -2px; left: 50%; width: 4px; height: 4px; background: #d4af37; border-radius: 50%; box-shadow: 0 0 8px #d4af37; }
-        @keyframes ring-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .dragon-seal.idle { animation: seal-breathe 4s ease-in-out infinite; }
-        @keyframes seal-breathe {
-            0%, 100% { filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.4)) drop-shadow(0 0 30px rgba(212, 175, 55, 0.15)); }
-            50% { filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.6)) drop-shadow(0 0 40px rgba(212, 175, 55, 0.25)); }
-        }
-
-        /* ==============================================
-           PANEL - Merged: Gold Dragon + NORMA effects
-           ============================================== */
-        .dragon-panel {
+    const css = `
+        .lbc-root, .lbc-root * { box-sizing: border-box; }
+        .lbc-root {
+            --lbc-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor, #20242b) 92%, transparent);
+            --lbc-surface: color-mix(in srgb, var(--SmartThemeBodyColor, #303640) 84%, transparent);
+            --lbc-border: color-mix(in srgb, var(--SmartThemeBorderColor, #8b95a5) 42%, transparent);
+            --lbc-text: var(--SmartThemeBodyColor, #f1f3f5);
+            --lbc-muted: color-mix(in srgb, var(--SmartThemeBodyColor, #f1f3f5) 62%, transparent);
+            --lbc-accent: var(--SmartThemeQuoteColor, #79a7ff);
             position: fixed;
-            width: 560px;
-            max-height: 84vh;
-            background: rgba(6, 12, 24, 0.92);
-            backdrop-filter: blur(40px) saturate(1.4);
-            border: 1px solid rgba(212, 175, 55, 0.1);
-            border-radius: 4px;
-            z-index: 2147483646;
-            display: none;
-            overflow: hidden;
-            color: #dce4ee;
-            box-shadow:
-                0 0 80px rgba(212, 175, 55, 0.04),
-                0 8px 40px rgba(0, 0, 0, 0.7),
-                inset 0 1px 0 rgba(255, 255, 255, 0.02);
-        }
-        .dragon-panel.visible,
-        .dragon-panel.closing {
-            display: flex;
-            flex-direction: column;
-            will-change: opacity, transform;
-        }
-        .dragon-panel.visible {
-            animation: panel-open 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
-        .dragon-panel.closing {
-            pointer-events: none !important;
-            animation: panel-close 160ms cubic-bezier(0.4, 0, 1, 1) both;
-        }
-        @keyframes panel-open {
-            from { opacity: 0; transform: translateY(10px) scale(0.985); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes panel-close {
-            from { opacity: 1; transform: translateY(0) scale(1); }
-            to   { opacity: 0; transform: translateY(8px) scale(0.985); }
-        }
-
-        /* Hex mesh background */
-        .panel-hex-mesh {
-            position: absolute; inset: 0; opacity: 0.02; pointer-events: none; z-index: 0;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23d4af37'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }
-
-        /* Scan overlay */
-        .panel-scan {
-            position: absolute; inset: 0; pointer-events: none; z-index: 20; overflow: hidden;
-        }
-        .panel-scan::before {
-            content: '';
-            position: absolute; left: 0; width: 100%; height: 2px;
-            background: linear-gradient(90deg, transparent 5%, rgba(212,175,55,0.04) 30%, rgba(212,175,55,0.08) 50%, rgba(212,175,55,0.04) 70%, transparent 95%);
-            box-shadow: 0 0 30px rgba(212,175,55,0.05);
-            animation: scan-sweep 7s linear infinite;
-        }
-        @keyframes scan-sweep {
-            0%   { top: -4px; opacity: 0; }
-            5%   { opacity: 1; }
-            95%  { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
-
-        /* Corner glyphs */
-        .panel-corner { position: absolute; width: 18px; height: 18px; z-index: 10; opacity: 0.25; }
-        .panel-corner::before, .panel-corner::after { content: ''; position: absolute; background: #d4af37; }
-        .cg-tl { top: 5px; left: 5px; }
-        .cg-tl::before { width: 10px; height: 1px; }
-        .cg-tl::after  { width: 1px; height: 10px; }
-        .cg-tr { top: 5px; right: 5px; }
-        .cg-tr::before { width: 10px; height: 1px; right: 0; }
-        .cg-tr::after  { width: 1px; height: 10px; right: 0; }
-        .cg-bl { bottom: 5px; left: 5px; }
-        .cg-bl::before { width: 10px; height: 1px; bottom: 0; }
-        .cg-bl::after  { width: 1px; height: 10px; bottom: 0; }
-        .cg-br { bottom: 5px; right: 5px; }
-        .cg-br::before { width: 10px; height: 1px; right: 0; bottom: 0; }
-        .cg-br::after  { width: 1px; height: 10px; right: 0; bottom: 0; }
-
-        /* Noise texture */
-        .panel-noise {
-            position: absolute; inset: 0; opacity: 0.02; pointer-events: none; z-index: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-        }
-
-        /* Top gradient bar */
-        .panel-top-bar {
-            height: 2px; flex-shrink: 0;
-            background: linear-gradient(90deg, transparent, rgba(212,175,55,0.3) 20%, #d4af37 45%, #f5e6a3 55%, rgba(212,175,55,0.3) 80%, transparent);
-            opacity: 0.5;
-        }
-
-        /* ===== HEADER ===== */
-        .panel-header {
-            padding: 20px 24px 16px;
-            border-bottom: 1px solid rgba(212, 175, 55, 0.06);
-            position: relative; z-index: 1; flex-shrink: 0;
-        }
-
-        /* Meta row */
-        .header-meta {
-            display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
-        }
-        .meta-path {
-            font-family: 'Rajdhani', monospace;
-            font-size: 0.6rem; color: rgba(212,175,55,0.35); letter-spacing: 2px;
-        }
-        .meta-status {
-            display: flex; align-items: center; gap: 6px;
-            font-family: 'Rajdhani', monospace;
-            font-size: 0.62rem; color: #d4af37; letter-spacing: 1.5px; text-transform: uppercase;
-        }
-        .status-beacon {
-            width: 5px; height: 5px; background: #d4af37; border-radius: 50%;
-            box-shadow: 0 0 8px #d4af37, 0 0 16px rgba(212,175,55,0.3);
-            animation: beacon-pulse 2s ease-in-out infinite;
-        }
-        @keyframes beacon-pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 8px #d4af37; }
-            50%      { opacity: 0.3; box-shadow: 0 0 4px #d4af37; }
-        }
-
-        /* Header main */
-        .header-main { display: flex; align-items: center; gap: 16px; }
-
-        .header-sigil {
-            width: 52px; height: 52px; position: relative; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .sigil-ring {
-            position: absolute; inset: 0;
-            border: 1px solid rgba(212,175,55,0.2); border-radius: 50%;
-            animation: ring-rotate 12s linear infinite;
-        }
-        .sigil-ring::before {
-            content: ''; position: absolute; top: -2px; left: 50%;
-            width: 4px; height: 4px; background: #d4af37; border-radius: 50%;
-            box-shadow: 0 0 6px #d4af37;
-        }
-        @keyframes ring-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        .sigil-inner {
-            width: 36px; height: 36px;
-            border: 1px solid rgba(212,175,55,0.15); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            background: rgba(212,175,55,0.03);
-        }
-        .sigil-char {
-            font-family: 'Noto Serif SC', serif; font-size: 1.2rem; font-weight: 900;
-            background: linear-gradient(180deg, #f5e6a3 0%, #d4af37 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-            filter: drop-shadow(0 0 6px rgba(212,175,55,0.4));
-        }
-
-        .header-text { flex: 1; }
-        .header-title {
-            font-family: 'Noto Serif SC', serif; font-size: 1.05rem; font-weight: 700;
-            color: #dce4ee; letter-spacing: 4px;
-        }
-        .header-subtitle {
-            font-family: 'Rajdhani', monospace; font-size: 0.62rem;
-            color: rgba(212,175,55,0.35); letter-spacing: 2px; margin-top: 3px;
-        }
-        .header-author {
-            font-family: 'ZCOOL KuaiLe', cursive; font-size: 0.82rem;
-            color: #d4af37; letter-spacing: 3px; margin-top: 2px;
-            text-shadow: 0 0 10px rgba(212,175,55,0.2);
-        }
-
-        .header-divider {
-            margin-top: 14px; height: 1px;
-            background: linear-gradient(90deg, transparent, #d4af37 30%, #f5e6a3 50%, #d4af37 70%, transparent);
-            opacity: 0.2;
-        }
-
-        .panel-close {
-            position: absolute; top: 18px; right: 20px;
-            width: 28px; height: 28px;
-            border: 1px solid rgba(212,175,55,0.08); background: rgba(212,175,55,0.02);
-            color: rgba(212,175,55,0.35); font-size: 0.85rem;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            border-radius: 4px; transition: all 0.3s; line-height: 1; z-index: 10;
-        }
-        .panel-close:hover {
-            background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25);
-            color: #ef4444; box-shadow: 0 0 12px rgba(239,68,68,0.1);
-        }
-
-        /* ===== BODY ===== */
-        .panel-body {
-            position: relative; padding: 10px 14px 8px;
-            overflow-y: auto; flex: 1; z-index: 2;
-            scrollbar-width: thin; scrollbar-color: rgba(212,175,55,0.12) transparent;
-        }
-        .panel-body::-webkit-scrollbar { width: 3px; }
-        .panel-body::-webkit-scrollbar-track { background: transparent; }
-        .panel-body::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.12); border-radius: 2px; }
-        .panel-body::-webkit-scrollbar-thumb:hover { background: rgba(212,175,55,0.25); }
-
-        /* ===== SECTION CARDS ===== */
-        .section-card {
-            margin-bottom: 6px;
-            border: 1px solid rgba(212,175,55,0.04);
-            border-radius: 3px;
-            background: rgba(10,20,38,0.5);
-            overflow: hidden;
-            transition: border-color 0.35s, box-shadow 0.35s;
-            position: relative;
-        }
-        .section-card:hover {
-            border-color: rgba(212,175,55,0.1);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        }
-        .section-card.expanded {
-            border-color: rgba(212,175,55,0.1);
-            box-shadow: 0 0 24px rgba(212,175,55,0.02);
-        }
-
-        /* Left accent rail */
-        .section-accent {
-            position: absolute; left: 0; top: 0; width: 2px; height: 100%;
-            transition: opacity 0.3s, box-shadow 0.3s; opacity: 0.3;
-        }
-        .section-card:hover .section-accent,
-        .section-card.expanded .section-accent {
-            opacity: 0.8; box-shadow: 0 0 10px currentColor;
-        }
-
-        .section-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 16px; cursor: pointer; transition: background 0.25s; position: relative;
-        }
-        .section-header:hover { background: rgba(212,175,55,0.02); }
-
-        .section-left { display: flex; align-items: center; gap: 12px; }
-        .section-icon {
-            width: 30px; height: 30px; display: grid; place-items: center;
-            font-family: 'Orbitron', monospace; font-size: 0.65rem; font-weight: 700;
-            border: 1px solid; border-radius: 3px; flex-shrink: 0; position: relative;
-        }
-        .section-icon::after {
-            content: ''; position: absolute; inset: -2px; border-radius: 3px;
-            box-shadow: 0 0 10px currentColor; opacity: 0.12; transition: opacity 0.3s;
-        }
-        .section-card:hover .section-icon::after,
-        .section-card.expanded .section-icon::after { opacity: 0.3; }
-
-        .section-name {
-            font-family: 'Noto Serif SC', serif; font-size: 0.84rem;
-            font-weight: 600; letter-spacing: 1px;
-        }
-
-        .section-right { display: flex; align-items: center; gap: 10px; }
-        .section-count {
-            font-family: 'Rajdhani', monospace; font-size: 0.58rem;
-            color: rgba(212,175,55,0.35); letter-spacing: 1.5px; white-space: nowrap;
-        }
-        .section-chevron {
-            width: 16px; height: 16px; position: relative;
-            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .section-chevron::before {
-            content: ''; position: absolute; left: 50%; top: 50%;
-            width: 6px; height: 6px;
-            border-right: 1.5px solid rgba(212,175,55,0.3);
-            border-bottom: 1.5px solid rgba(212,175,55,0.3);
-            transform: translate(-50%, -60%) rotate(45deg);
-            transition: border-color 0.3s;
-        }
-        .section-card.expanded .section-chevron { transform: rotate(180deg); }
-        .section-header:hover .section-chevron::before { border-color: #d4af37; }
-
-        /* Section body */
-        .section-body {
-            max-height: 0; overflow: hidden;
-            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .section-card.expanded .section-body { max-height: 3000px; }
-        .section-inner {
-            padding: 2px 12px 12px;
-            border-top: 1px solid rgba(212,175,55,0.04);
-        }
-
-        /* Overview row */
-        .overview-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 12px; margin: 6px 0;
-            background: rgba(212,175,55,0.02); border: 1px solid rgba(212,175,55,0.04);
-            border-radius: 2px; position: relative;
-        }
-        .overview-label {
-            display: flex; align-items: center; gap: 10px;
-            font-family: 'Noto Serif SC', serif; font-size: 0.8rem;
-            font-weight: 700; letter-spacing: 1px;
-            text-shadow: 0 0 8px currentColor;
-        }
-        .overview-badge {
-            font-family: 'Rajdhani', monospace; font-size: 0.55rem;
-            padding: 1px 6px; border-radius: 2px;
-            letter-spacing: 1.5px; text-transform: uppercase;
-            border: 1px solid; font-weight: 600;
-        }
-
-        /* Chapter rows */
-        .chapter-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 7px 12px; border-radius: 2px; transition: background 0.2s;
-        }
-        .chapter-row:hover { background: rgba(212,175,55,0.02); }
-        .chapter-label {
-            font-family: 'Noto Serif SC', serif; font-size: 0.76rem;
-            color: rgba(212,175,55,0.6); flex: 1; transition: color 0.2s;
-            letter-spacing: 0.3px; line-height: 1.5;
-        }
-        .chapter-row:hover .chapter-label { color: rgba(212,175,55,0.85); }
-
-        /* ===== TOGGLE ===== */
-        .toggle {
-            position: relative; width: 38px; height: 19px;
-            background: rgba(10,20,38,0.8);
-            border: 1px solid rgba(212,175,55,0.08);
-            border-radius: 2px; cursor: pointer;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            flex-shrink: 0; box-shadow: inset 0 1px 4px rgba(0,0,0,0.4);
-        }
-        .toggle.on {
-            background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.3));
-            border-color: rgba(212,175,55,0.3);
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), 0 0 12px rgba(212,175,55,0.1);
-        }
-        .toggle::after {
-            content: ''; position: absolute;
-            width: 13px; height: 13px; border-radius: 2px;
-            top: 2px; left: 2px;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            background: linear-gradient(145deg, #2a3040, #1a2030);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.04);
-        }
-        .toggle.on::after {
-            transform: translateX(19px);
-            background: linear-gradient(145deg, #f5e6a3, #d4af37);
-            box-shadow: 0 0 10px rgba(212,175,55,0.5), 0 0 20px rgba(212,175,55,0.2);
-            border-color: rgba(255,255,255,0.1);
-        }
-        .toggle.loading {
+            inset: 0;
+            z-index: 2147483000;
             pointer-events: none;
-            border-color: rgba(212,175,55,0.2);
-            background: rgba(10,20,38,0.8);
+            font: 14px/1.45 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+            color: var(--lbc-text);
         }
-        .toggle.loading::after {
-            transition: none;
-            animation: toggle-knob-pulse 1s ease-in-out infinite;
+        .lbc-launcher {
+            position: fixed;
+            right: 24px;
+            bottom: 28px;
+            width: 54px;
+            height: 54px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--lbc-border);
+            border-radius: 50%;
+            background: var(--lbc-bg);
+            color: var(--lbc-text);
+            box-shadow: 0 8px 26px rgb(0 0 0 / 28%);
+            cursor: grab;
+            pointer-events: auto;
+            touch-action: none;
+            backdrop-filter: blur(14px);
         }
-        @keyframes toggle-knob-pulse {
-            0%, 100% { background: #1a2030; box-shadow: 0 1px 3px rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.04); }
-            50%      { background: #d4af37; box-shadow: 0 0 10px rgba(212,175,55,0.6); border-color: rgba(212,175,55,0.3); }
+        .lbc-launcher:active { cursor: grabbing; }
+        .lbc-launcher svg { width: 24px; height: 24px; pointer-events: none; }
+        .lbc-panel {
+            position: fixed;
+            width: min(440px, calc(100vw - 24px));
+            max-height: min(680px, calc(100vh - 24px));
+            display: grid;
+            grid-template-rows: auto auto minmax(0, 1fr) auto;
+            overflow: hidden;
+            border: 1px solid var(--lbc-border);
+            border-radius: 16px;
+            background: var(--lbc-bg);
+            box-shadow: 0 18px 60px rgb(0 0 0 / 38%);
+            pointer-events: auto;
+            backdrop-filter: blur(18px);
         }
-        .toggle.unknown { background: rgba(160,110,30,0.12); border-color: rgba(160,110,30,0.25); }
-        .toggle.unknown::after { background: #a06e1e; }
-        @keyframes toggle-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
-        .toggle.error { animation: toggle-shake 0.3s ease; border-color: rgba(239,68,68,0.35); }
-
-        /* ===== BATCH BAR ===== */
-        .batch-bar {
-            display: flex; align-items: center; gap: 8px;
-            padding: 4px 0 8px; margin-bottom: 4px;
-            border-bottom: 1px solid rgba(212,175,55,0.03);
+        .lbc-panel[hidden] { display: none; }
+        .lbc-header, .lbc-footer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
         }
-        .batch-btn {
-            font-family: 'Noto Serif SC', serif; font-size: 0.62rem;
-            padding: 4px 12px;
-            border: 1px solid rgba(212,175,55,0.08); border-radius: 2px;
-            background: rgba(212,175,55,0.02); color: rgba(212,175,55,0.5);
-            cursor: pointer; transition: all 0.25s; white-space: nowrap; letter-spacing: 1px;
+        .lbc-header { border-bottom: 1px solid var(--lbc-border); }
+        .lbc-title { min-width: 0; flex: 1; }
+        .lbc-title strong, .lbc-title span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lbc-title span, .lbc-footer { color: var(--lbc-muted); font-size: 12px; }
+        .lbc-icon-button, .lbc-tab, .lbc-action, .lbc-switch, .lbc-group-head {
+            border: 0;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
         }
-        .batch-btn:hover {
-            background: rgba(212,175,55,0.06); color: rgba(212,175,55,0.7);
-            border-color: rgba(212,175,55,0.15);
+        .lbc-icon-button {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: transparent;
+            font-size: 20px;
         }
-        .batch-btn:active { transform: scale(0.97); }
-        .batch-btn.loading { opacity: 0.5; pointer-events: none; }
-        .batch-btn.enable-all:hover {
-            background: rgba(212,175,55,0.1); color: #d4af37;
-            border-color: rgba(212,175,55,0.25);
+        .lbc-icon-button:hover, .lbc-tab:hover, .lbc-action:hover, .lbc-row:hover { background: rgb(255 255 255 / 7%); }
+        .lbc-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            padding: 8px;
+            border-bottom: 1px solid var(--lbc-border);
         }
-        .batch-btn.disable-all:hover {
-            background: rgba(100,80,120,0.08); color: rgba(180,160,200,0.7);
-            border-color: rgba(140,120,160,0.2);
+        .lbc-tab {
+            min-height: 40px;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--lbc-muted);
         }
-        .batch-status {
-            font-family: 'Rajdhani', monospace; font-size: 0.55rem;
-            color: rgba(212,175,55,0.3); margin-left: auto; letter-spacing: 1px;
+        .lbc-tab[aria-selected="true"] { background: var(--lbc-surface); color: var(--lbc-text); font-weight: 650; }
+        .lbc-pages { min-height: 220px; overflow: auto; padding: 8px; overscroll-behavior: contain; }
+        .lbc-page[hidden] { display: none; }
+        .lbc-group { margin-bottom: 8px; overflow: hidden; border: 1px solid var(--lbc-border); border-radius: 12px; background: var(--lbc-surface); }
+        .lbc-group-head {
+            width: 100%;
+            min-height: 52px;
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr) auto auto;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 10px;
+            background: transparent;
+            text-align: left;
         }
-
-        /* ===== FOOTER ===== */
-        .panel-footer {
-            padding: 12px 20px 14px;
-            border-top: 1px solid rgba(212,175,55,0.06);
-            display: flex; align-items: center; justify-content: space-between;
-            position: relative; z-index: 1; flex-shrink: 0;
+        .lbc-group-icon {
+            width: 30px;
+            height: 30px;
+            display: grid;
+            place-items: center;
+            border-radius: 9px;
+            background: color-mix(in srgb, var(--group-color) 18%, transparent);
+            color: var(--group-color);
+            font-weight: 700;
         }
-        .footer-hint {
-            font-family: 'Rajdhani', sans-serif; font-size: 0.6rem;
-            color: rgba(212,175,55,0.25); letter-spacing: 1.5px;
+        .lbc-count { color: var(--lbc-muted); font-size: 12px; }
+        .lbc-chevron { transition: transform 160ms ease; }
+        .lbc-group[data-open="true"] .lbc-chevron { transform: rotate(90deg); }
+        .lbc-group-body { display: none; border-top: 1px solid var(--lbc-border); }
+        .lbc-group[data-open="true"] .lbc-group-body { display: block; }
+        .lbc-actions { display: flex; gap: 7px; padding: 8px; border-bottom: 1px solid var(--lbc-border); }
+        .lbc-action {
+            min-height: 34px;
+            padding: 0 12px;
+            border-radius: 9px;
+            background: rgb(255 255 255 / 6%);
         }
-        .footer-credit { display: flex; align-items: center; gap: 8px; }
-        .credit-name {
-            font-family: 'ZCOOL KuaiLe', cursive; font-size: 0.85rem;
-            color: #d4af37; letter-spacing: 3px;
-            text-shadow: 0 0 10px rgba(212,175,55,0.2);
+        .lbc-row {
+            min-height: 46px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 7px 10px 7px 13px;
+            border-bottom: 1px solid rgb(255 255 255 / 5%);
         }
-        .credit-ver {
-            font-family: 'Rajdhani', monospace; font-size: 0.55rem;
-            color: rgba(212,175,55,0.2); letter-spacing: 1px;
+        .lbc-row:last-child { border-bottom: 0; }
+        .lbc-row-label { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+        .lbc-row-overview .lbc-row-label { color: var(--group-color); font-weight: 650; }
+        .lbc-switch {
+            position: relative;
+            width: 46px;
+            height: 28px;
+            flex: 0 0 auto;
+            border-radius: 999px;
+            background: rgb(255 255 255 / 16%);
+            transition: background 130ms ease;
         }
-        .panel-bottom-glow {
-            height: 1px; flex-shrink: 0;
-            background: linear-gradient(90deg, transparent, rgba(212,175,55,0.2) 30%, rgba(245,230,163,0.15) 70%, transparent);
+        .lbc-switch::after {
+            content: "";
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 4px rgb(0 0 0 / 28%);
+            transition: transform 130ms ease;
         }
-
-        /* ===== INIT MSG ===== */
-        .init-msg {
-            text-align: center; padding: 40px 0;
-            font-family: 'Rajdhani', monospace; font-size: 0.7rem;
-            color: rgba(212,175,55,0.2); letter-spacing: 4px; text-transform: uppercase;
-        }
-        .init-msg .dot-anim::after { content: ''; animation: dots 1.5s steps(4, end) infinite; }
-        @keyframes dots { 0%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} }
-
-        /* ===== TAB BAR ===== */
-        .panel-tabs {
-            display: flex; position: relative; z-index: 1; flex-shrink: 0;
-            border-bottom: 1px solid rgba(212,175,55,0.06);
-        }
-        .panel-tab {
-            flex: 1; padding: 10px 20px; text-align: center; cursor: pointer;
-            font-family: 'Noto Serif SC', serif; font-size: 0.82rem; font-weight: 600;
-            letter-spacing: 2px; position: relative;
-            color: rgba(220,228,238,0.3); transition: all 0.35s;
-            border-bottom: 2px solid transparent;
-        }
-        .panel-tab:hover { color: rgba(220,228,238,0.5); background: rgba(255,255,255,0.01); }
-        .panel-tab.active { color: #d4af37; border-bottom-color: #d4af37; }
-        .panel-tab.active.dlc-tab { color: #a78bfa; border-bottom-color: #a78bfa; }
-        .panel-tab.active.char-tab { color: #f472b6; border-bottom-color: #f472b6; }
-        .panel-tab .tab-icon { margin-right: 6px; font-size: 0.9rem; }
-
-        @media (max-width: 600px) {
-            .dragon-panel { width: calc(100vw - 16px); left: 8px !important; }
-            .dragon-seal { transform: scale(0.75) !important; transform-origin: bottom right !important; }
-            .dragon-seal:hover { transform: scale(0.8) !important; }
-            .dragon-seal:active { transform: scale(0.7) !important; }
-        }
-
-        /* Local performance profile: keep the look, remove continuous GPU-heavy effects. */
-        .seal-particles, .seal-ring, .panel-scan, .panel-noise { display: none !important; }
-        .dragon-seal.idle, .status-beacon, .sigil-ring { animation: none !important; }
-        .dragon-panel { backdrop-filter: blur(12px) saturate(1.1); }
-    `;
-
-    // Inject CSS
-    const styleEl = parentDoc.createElement('style');
-    styleEl.setAttribute('script_id', scriptId);
-    styleEl.textContent = STYLES;
-    parentDoc.head.appendChild(styleEl);
-
-    // Root container
-    const root = parentDoc.createElement('div');
-    root.setAttribute('script_id', scriptId);
-    root.style.cssText = 'position: fixed; z-index: 2147483647; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;';
-    parentDoc.body.appendChild(root);
-
-    // ===== Drag logic =====
-    function initDrag(ball) {
-        let isDragging = false;
-        let startX, startY, ballX, ballY;
-
-        function constrainPosition() {
-            if (ball.style.right !== 'auto' && ball.style.right !== '') return;
-            const rect = ball.getBoundingClientRect();
-            let currentLeft = parseFloat(ball.style.left) || rect.left;
-            let currentTop = parseFloat(ball.style.top) || rect.top;
-            const maxLeft = parentWin.innerWidth - rect.width;
-            const maxTop = parentWin.innerHeight - rect.height;
-            if (currentLeft > maxLeft) ball.style.left = maxLeft + 'px';
-            if (currentLeft < 0) ball.style.left = '0px';
-            if (currentTop > maxTop) ball.style.top = maxTop + 'px';
-            if (currentTop < 0) ball.style.top = '0px';
-        }
-
-        const savedXValue = parentWin.localStorage.getItem('floatingBall_x');
-        const savedYValue = parentWin.localStorage.getItem('floatingBall_y');
-        const savedX = Number(savedXValue);
-        const savedY = Number(savedYValue);
-        if (savedXValue !== null && savedYValue !== null && Number.isFinite(savedX) && Number.isFinite(savedY)) {
-            ball.style.left = savedX + 'px';
-            ball.style.top = savedY + 'px';
-            ball.style.right = 'auto';
-            ball.style.bottom = 'auto';
-            constrainPosition();
-        }
-
-        function handleDragStart(e) {
-            if (e.type === 'touchstart') {
-                if (e.touches.length > 1) return;
-            } else {
-                e.preventDefault();
+        .lbc-switch[aria-checked="true"] { background: var(--lbc-accent); }
+        .lbc-switch[aria-checked="true"]::after { transform: translateX(18px); }
+        .lbc-switch[data-state="unknown"] { background: #a56c32; }
+        .lbc-switch:disabled, .lbc-action:disabled { cursor: wait; opacity: .55; }
+        .lbc-footer { min-height: 42px; border-top: 1px solid var(--lbc-border); }
+        .lbc-status { flex: 1; }
+        .lbc-status[data-kind="error"] { color: #ff8d8d; }
+        @media (max-width: 640px) {
+            .lbc-launcher { right: 16px; bottom: 18px; width: 58px; height: 58px; }
+            .lbc-panel {
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                top: auto !important;
+                width: 100%;
+                max-height: min(82dvh, 720px);
+                border-width: 1px 0 0;
+                border-radius: 18px 18px 0 0;
+                padding-bottom: env(safe-area-inset-bottom);
             }
-            isDragging = false;
-            startX = e.touches ? e.touches[0].clientX : e.clientX;
-            startY = e.touches ? e.touches[0].clientY : e.clientY;
-            const rect = ball.getBoundingClientRect();
-            ballX = rect.left; ballY = rect.top;
-
-            const onMove = (me) => {
-                const mx = me.touches ? me.touches[0].clientX : me.clientX;
-                const my = me.touches ? me.touches[0].clientY : me.clientY;
-                const dx = mx - startX, dy = my - startY;
-                if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-                    if (me.cancelable !== false) me.preventDefault(); // 防止屏幕随之滚动
-                    isDragging = true; ball.classList.remove('idle');
-                    ball.style.right = 'auto'; ball.style.bottom = 'auto';
-                    const maxLeft = parentWin.innerWidth - rect.width;
-                    const maxTop = parentWin.innerHeight - rect.height;
-                    ball.style.left = Math.max(0, Math.min(maxLeft, ballX + dx)) + 'px';
-                    ball.style.top = Math.max(0, Math.min(maxTop, ballY + dy)) + 'px';
-                }
-            };
-            const onUp = () => {
-                parentDoc.removeEventListener('mousemove', onMove);
-                parentDoc.removeEventListener('mouseup', onUp);
-                parentDoc.removeEventListener('touchmove', onMove);
-                parentDoc.removeEventListener('touchend', onUp);
-                if (isDragging) {
-                    const r = ball.getBoundingClientRect();
-                    parentWin.localStorage.setItem('floatingBall_x', r.left);
-                    parentWin.localStorage.setItem('floatingBall_y', r.top);
-                    ball.classList.add('idle');
-                }
-            };
-            parentDoc.addEventListener('mousemove', onMove);
-            parentDoc.addEventListener('mouseup', onUp);
-            parentDoc.addEventListener('touchmove', onMove, { passive: false });
-            parentDoc.addEventListener('touchend', onUp);
+            .lbc-header { padding: 14px 16px 10px; }
+            .lbc-pages { padding: 8px 8px 16px; }
+            .lbc-group-head, .lbc-row { min-height: 54px; }
+            .lbc-action { min-height: 42px; }
         }
-
-        ball.addEventListener('mousedown', handleDragStart);
-        ball.addEventListener('touchstart', handleDragStart, { passive: false });
-        parentWin.addEventListener('resize', constrainPosition, listenerOptions);
-
-        return { isDragging: () => isDragging };
-    }
-
-    // ===== Create Dragon Seal (floating ball) =====
-    const ball = parentDoc.createElement('div');
-    ball.className = 'dragon-seal idle';
-    ball.title = '龙族世界书控制面板';
-    ball.style.pointerEvents = 'auto';
-    const hexPath = 'M36 2 L66 22 L66 58 L36 78 L6 58 L6 22 Z';
-    const hexInner = 'M36 8 L60 24 L60 56 L36 72 L12 56 L12 24 Z';
-    ball.innerHTML = `
-        <div class="seal-hex">
-            <svg viewBox="0 0 72 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="sealGrad" x1="36" y1="0" x2="36" y2="80" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stop-color="#f5e6a3" stop-opacity="0.9"/>
-                        <stop offset="50%" stop-color="#d4af37" stop-opacity="0.8"/>
-                        <stop offset="100%" stop-color="#8b6914" stop-opacity="0.7"/>
-                    </linearGradient>
-                    <linearGradient id="sealFill" x1="36" y1="0" x2="36" y2="80" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stop-color="rgba(20,16,28,0.95)"/>
-                        <stop offset="100%" stop-color="rgba(10,8,18,0.98)"/>
-                    </linearGradient>
-                    <filter id="sealGlow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
-                </defs>
-                <path d="${hexPath}" fill="url(#sealFill)" stroke="url(#sealGrad)" stroke-width="1.5" filter="url(#sealGlow)"/>
-                <path d="${hexInner}" fill="none" stroke="rgba(212,175,55,0.15)" stroke-width="0.5"/>
-                <line x1="18" y1="28" x2="54" y2="28" stroke="rgba(212,175,55,0.08)" stroke-width="0.5"/>
-                <line x1="18" y1="52" x2="54" y2="52" stroke="rgba(212,175,55,0.08)" stroke-width="0.5"/>
-                <line x1="22" y1="22" x2="22" y2="58" stroke="rgba(212,175,55,0.06)" stroke-width="0.5"/>
-                <line x1="50" y1="22" x2="50" y2="58" stroke="rgba(212,175,55,0.06)" stroke-width="0.5"/>
-            </svg>
-            <div class="seal-glyph"><span>诺</span></div>
-            <div class="seal-particles"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-            <div class="seal-ring"></div>
-        </div>
+        @media (prefers-reduced-motion: reduce) {
+            .lbc-root * { transition: none !important; }
+        }
     `;
 
-    // ===== Create Panel (merged NORMA + Dragon) =====
-    const panel = parentDoc.createElement('div');
-    panel.className = 'dragon-panel';
-    panel.style.pointerEvents = 'auto';
-    panel.innerHTML = `
-        <div class="panel-noise"></div>
-        <div class="panel-hex-mesh"></div>
-        <div class="panel-scan"></div>
-        <div class="panel-corner cg-tl"></div>
-        <div class="panel-corner cg-tr"></div>
-        <div class="panel-corner cg-bl"></div>
-        <div class="panel-corner cg-br"></div>
-        <div class="panel-top-bar"></div>
+    const style = hostDocument.createElement('style');
+    style.dataset.lbcOwner = scriptId;
+    style.textContent = css;
+    hostDocument.head.append(style);
 
-        <div class="panel-header">
-            <div class="header-meta">
-                <span class="meta-path">SYS://WORLDBOOK_CTRL</span>
-                <span class="meta-status"><span class="status-beacon"></span>LINKED</span>
-            </div>
-            <div class="header-main">
-                <div class="header-sigil">
-                    <div class="sigil-ring"></div>
-                    <div class="sigil-inner"><span class="sigil-char">诺</span></div>
-                </div>
-                <div class="header-text">
-                    <div class="header-title">世界书控制枢纽</div>
-                    <div class="header-subtitle">DRAGON RAJA &middot; WORLD BOOK CONTROLLER v3.0</div>
-                </div>
-            </div>
-            <div class="header-divider"></div>
-            <button class="panel-close">&#x2715;</button>
-        </div>
-
-        <div class="panel-tabs">
-            <div class="panel-tab active" data-page="dragon"><span class="tab-icon">🐉</span>龙族世界书</div>
-            <div class="panel-tab dlc-tab" data-page="dlc"><span class="tab-icon">📦</span>DLC</div>
-            <div class="panel-tab char-tab" data-page="characters"><span class="tab-icon">📋</span>人物条目</div>
-        </div>
-
-        <div class="panel-body"></div>
-
-        <div class="panel-footer">
-            <span class="footer-hint">点击书名展开 &middot; 拨动开关控制条目</span>
-            <span class="credit-ver">LOCAL OPTIMIZED</span>
-        </div>
-        <div class="panel-bottom-glow"></div>
+    const root = hostDocument.createElement('div');
+    root.className = 'lbc-root';
+    root.dataset.lbcOwner = scriptId;
+    root.innerHTML = `
+        <button class="lbc-launcher" type="button" aria-label="打开世界书管理器" aria-expanded="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 3.5A2.5 2.5 0 0 1 7.5 1H20v17H7.5A2.5 2.5 0 0 0 5 20.5v-17Zm2.5-.5A.5.5 0 0 0 7 3.5v13.55c.16-.03.33-.05.5-.05H18V3H7.5ZM4 4H2v16.5A2.5 2.5 0 0 0 4.5 23H20v-2H4.5a.5.5 0 0 1-.5-.5V4Z"/></svg>
+        </button>
+        <section class="lbc-panel" aria-label="世界书管理器" hidden>
+            <header class="lbc-header">
+                <div class="lbc-title"><strong>世界书管理器</strong><span>${BOOK_FILE}</span></div>
+                <button class="lbc-icon-button" type="button" data-action="refresh" aria-label="刷新">↻</button>
+                <button class="lbc-icon-button" type="button" data-action="close" aria-label="关闭">×</button>
+            </header>
+            <nav class="lbc-tabs" aria-label="世界书分类"></nav>
+            <main class="lbc-pages"></main>
+            <footer class="lbc-footer"><span class="lbc-status">准备就绪</span><span>快速切换会自动合并保存</span></footer>
+        </section>
     `;
+    hostDocument.body.append(root);
 
-    root.appendChild(ball);
-    root.appendChild(panel);
-    console.log('[悬浮球 JSON版本] 元素已添加到页面');
+    const launcher = root.querySelector('.lbc-launcher');
+    const panel = root.querySelector('.lbc-panel');
+    const tabs = root.querySelector('.lbc-tabs');
+    const pageHost = root.querySelector('.lbc-pages');
+    const status = root.querySelector('.lbc-status');
+    const builtPages = new Map();
+    let activePage = 'story';
+    let dragged = false;
 
-    const drag = initDrag(ball);
-
-    function positionPanel() {
-        const ballRect = ball.getBoundingClientRect();
-        const panelWidth = 560, panelHeight = Math.min(620, parentWin.innerHeight * 0.84);
-        const gap = 14;
-        let left = ballRect.right + gap, top = ballRect.top;
-        if (left + panelWidth > parentWin.innerWidth) left = ballRect.left - panelWidth - gap;
-        if (top + panelHeight > parentWin.innerHeight) top = parentWin.innerHeight - panelHeight - 20;
-        if (top < 20) top = 20;
-        panel.style.left = left + 'px';
-        panel.style.top = top + 'px';
+    function element(tag, className, text) {
+        const node = hostDocument.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
     }
 
-    function createToggle(uid) {
-        const el = parentDoc.createElement('div');
-        el.className = 'toggle loading';
-        el.dataset.uid = uid;
-        el.onclick = async () => {
-            if (el.classList.contains('loading')) return;
-            el.classList.add('loading');
-            const newState = !el.classList.contains('on');
-            try {
-                await loreBookStore.setState(uid, newState);
-                el.classList.toggle('on', newState);
-            } catch (e) {
-                console.error('[世界书控制器] 保存条目失败', e);
-                el.classList.add('error');
-                setTimeout(() => el.classList.remove('error'), 300);
-            }
-            finally { el.classList.remove('loading'); }
-        };
-        return el;
+    function setStatus(message, kind = '') {
+        status.textContent = message;
+        status.dataset.kind = kind;
     }
 
-    async function batchSetSection(section, enable) {
-        const allUids = [...(section.overview ? [section.overview.uid] : []), ...section.chapters.map(c => c.uid)];
-        return loreBookStore.setStates(allUids, enable);
+    function makeSwitch(uid) {
+        const button = element('button', 'lbc-switch');
+        button.type = 'button';
+        button.dataset.action = 'toggle';
+        button.dataset.uid = uid;
+        button.dataset.state = 'loading';
+        button.setAttribute('role', 'switch');
+        button.setAttribute('aria-checked', 'false');
+        button.setAttribute('aria-label', '切换条目');
+        button.disabled = true;
+        return button;
     }
 
-    async function loadToggleStates(card) {
-        const toggles = Array.from(card.querySelectorAll('.toggle'));
-        let states;
+    function makeRow(item, overview = false) {
+        const row = element('div', `lbc-row${overview ? ' lbc-row-overview' : ''}`);
+        const label = element('span', 'lbc-row-label', item.label);
+        row.append(label, makeSwitch(item.uid));
+        return row;
+    }
+
+    function makeGroup(section) {
+        const group = element('section', 'lbc-group');
+        group.dataset.sectionId = section.id;
+        group.dataset.open = 'false';
+        group.style.setProperty('--group-color', section.color);
+
+        const head = element('button', 'lbc-group-head');
+        head.type = 'button';
+        head.dataset.action = 'group';
+        head.innerHTML = `<span class="lbc-group-icon"></span><span class="lbc-group-name"></span><span class="lbc-count"></span><span class="lbc-chevron">›</span>`;
+        head.querySelector('.lbc-group-icon').textContent = section.icon;
+        head.querySelector('.lbc-group-name').textContent = section.label;
+        head.querySelector('.lbc-count').textContent = `${section.chapters.length} 项`;
+
+        const body = element('div', 'lbc-group-body');
+        const actions = element('div', 'lbc-actions');
+        const enable = element('button', 'lbc-action', '全部开启');
+        enable.type = 'button';
+        enable.dataset.action = 'batch';
+        enable.dataset.enabled = 'true';
+        const disable = element('button', 'lbc-action', '全部关闭');
+        disable.type = 'button';
+        disable.dataset.action = 'batch';
+        disable.dataset.enabled = 'false';
+        actions.append(enable, disable);
+        body.append(actions);
+        if (section.overview) body.append(makeRow(section.overview, true));
+        section.chapters.forEach(chapter => body.append(makeRow(chapter)));
+        group.append(head, body);
+        return group;
+    }
+
+    function getPage(key) {
+        if (!builtPages.has(key)) {
+            const page = element('div', 'lbc-page');
+            page.dataset.page = key;
+            pages[key].sections.forEach(section => page.append(makeGroup(section)));
+            builtPages.set(key, page);
+        }
+        return builtPages.get(key);
+    }
+
+    Object.entries(pages).forEach(([key, page]) => {
+        const tab = element('button', 'lbc-tab', page.label);
+        tab.type = 'button';
+        tab.dataset.action = 'tab';
+        tab.dataset.page = key;
+        tab.setAttribute('aria-selected', String(key === activePage));
+        tabs.append(tab);
+    });
+
+    function showPage(key) {
+        activePage = key;
+        tabs.querySelectorAll('.lbc-tab').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.page === key)));
+        pageHost.replaceChildren(getPage(key));
+        refreshVisibleStates();
+    }
+
+    async function refreshVisibleStates(force = false) {
+        const switches = [...pageHost.querySelectorAll('.lbc-switch')];
+        switches.forEach(button => {
+            button.disabled = true;
+            button.dataset.state = 'loading';
+        });
         try {
-            states = await loreBookStore.getStates(toggles.map(toggle => toggle.dataset.uid));
-        } catch (e) {
-            console.error('[世界书控制器] 加载世界书失败', e);
-            states = new Map(toggles.map(toggle => [toggle.dataset.uid, null]));
+            const states = await store.getStates(switches.map(button => button.dataset.uid), { force });
+            switches.forEach(button => {
+                const enabled = states.get(button.dataset.uid);
+                button.disabled = false;
+                button.dataset.state = enabled === null ? 'unknown' : 'ready';
+                button.setAttribute('aria-checked', String(enabled === true));
+            });
+            setStatus('状态已同步');
+        } catch (error) {
+            switches.forEach(button => {
+                button.disabled = false;
+                button.dataset.state = 'unknown';
+            });
+            setStatus('读取失败，请重试', 'error');
+            console.error('[世界书管理器] 读取失败', error);
         }
-        toggles.forEach(toggle => {
-            const state = states.get(toggle.dataset.uid);
-            toggle.classList.remove('on', 'unknown');
-            if (state === true) toggle.classList.add('on');
-            else if (state === null) toggle.classList.add('unknown');
-            toggle.classList.remove('loading');
-        });
     }
 
-    const renderedPages = new Set();
-    let currentPage = 'dragon';
-    const panelBody = panel.querySelector('.panel-body');
+    function sectionByGroup(group) {
+        return pages[activePage].sections.find(section => section.id === group?.dataset.sectionId);
+    }
 
-    async function renderSections(sections, pageKey) {
-        if (renderedPages.has(pageKey)) {
-            const cards = Array.from(panelBody.querySelectorAll('.section-card'));
-            await Promise.all(cards.map(c => loadToggleStates(c)));
-            return;
+    async function toggleOne(button) {
+        const enabled = button.getAttribute('aria-checked') !== 'true';
+        button.setAttribute('aria-checked', String(enabled));
+        button.disabled = true;
+        setStatus('正在保存...');
+        try {
+            await store.setState(button.dataset.uid, enabled);
+            setStatus('已保存');
+        } catch (error) {
+            button.setAttribute('aria-checked', String(!enabled));
+            setStatus('保存失败，已恢复', 'error');
+            console.error('[世界书管理器] 保存失败', error);
+        } finally {
+            button.disabled = false;
         }
+    }
 
-        panelBody.innerHTML = '';
-        const cards = [];
-
-        sections.forEach((sec) => {
-            const card = parentDoc.createElement('div');
-            card.className = 'section-card';
-            card.setAttribute('data-sid', sec.id);
-
-            // Accent rail (dynamic color via inline style)
-            const accent = parentDoc.createElement('div');
-            accent.className = 'section-accent';
-            accent.style.background = sec.color;
-            accent.style.color = sec.color;
-
-            // Header
-            const header = parentDoc.createElement('div');
-            header.className = 'section-header';
-            header.innerHTML = `
-                <div class="section-left">
-                    <div class="section-icon" style="color:${sec.color};border-color:${sec.color}">${sec.icon}</div>
-                    <span class="section-name" style="color:${sec.color}">${sec.label}</span>
-                </div>
-                <div class="section-right">
-                    <span class="section-count">${sec.chapters.length} ACTS</span>
-                    <div class="section-chevron"></div>
-                </div>
-            `;
-            header.onclick = () => card.classList.toggle('expanded');
-
-            // Body
-            const body = parentDoc.createElement('div');
-            body.className = 'section-body';
-            const inner = parentDoc.createElement('div');
-            inner.className = 'section-inner';
-
-            // Batch bar
-            const batchBar = parentDoc.createElement('div');
-            batchBar.className = 'batch-bar';
-            const btnEnable = parentDoc.createElement('button');
-            btnEnable.className = 'batch-btn enable-all';
-            btnEnable.textContent = '全部开启';
-            const btnDisable = parentDoc.createElement('button');
-            btnDisable.className = 'batch-btn disable-all';
-            btnDisable.textContent = '全部关闭';
-            const batchStatus = parentDoc.createElement('span');
-            batchStatus.className = 'batch-status';
-
-            async function runBatch(enable) {
-                btnEnable.classList.add('loading');
-                btnDisable.classList.add('loading');
-                batchStatus.textContent = '执行中...';
-                try {
-                    await batchSetSection(sec, enable);
-                    await loadToggleStates(card);
-                    batchStatus.textContent = '已完成';
-                    setTimeout(() => { batchStatus.textContent = ''; }, 1500);
-                } catch (e) {
-                    batchStatus.textContent = '部分失败';
-                    setTimeout(() => { batchStatus.textContent = ''; }, 2000);
-                } finally {
-                    btnEnable.classList.remove('loading');
-                    btnDisable.classList.remove('loading');
-                }
-            }
-            btnEnable.onclick = (e) => { e.stopPropagation(); runBatch(true); };
-            btnDisable.onclick = (e) => { e.stopPropagation(); runBatch(false); };
-            batchBar.append(btnEnable, btnDisable, batchStatus);
-            inner.append(batchBar);
-
-            // Overview row (only if section has overview)
-            if (sec.overview) {
-                const ovRow = parentDoc.createElement('div');
-                ovRow.className = 'overview-row';
-
-                const ovAccentBar = parentDoc.createElement('div');
-                ovAccentBar.style.cssText = `position:absolute;left:-1px;top:50%;transform:translateY(-50%);width:3px;height:16px;border-radius:0 2px 2px 0;background:${sec.color}`;
-
-                const ovLabel = parentDoc.createElement('span');
-                ovLabel.className = 'overview-label';
-                ovLabel.style.color = sec.color;
-                ovLabel.textContent = sec.overview.label;
-
-                // MASTER badge
-                const ovBadge = parentDoc.createElement('span');
-                ovBadge.className = 'overview-badge';
-                ovBadge.style.color = sec.color;
-                ovBadge.style.borderColor = sec.color;
-                ovBadge.style.background = sec.accent + '0.06)';
-                ovBadge.textContent = 'MASTER';
-                ovLabel.append(ovBadge);
-
-                const ovToggle = createToggle(sec.overview.uid);
-                ovRow.append(ovAccentBar, ovLabel, ovToggle);
-                inner.append(ovRow);
-            }
-
-            // Chapter rows
-            for (const ch of sec.chapters) {
-                const row = parentDoc.createElement('div');
-                row.className = 'chapter-row';
-                const label = parentDoc.createElement('span');
-                label.className = 'chapter-label';
-                label.textContent = ch.label;
-                const toggle = createToggle(ch.uid);
-                row.append(label, toggle);
-                inner.append(row);
-            }
-
-            body.append(inner);
-            card.append(accent, header, body);
-            panelBody.append(card);
-            cards.push(card);
+    async function toggleSection(button) {
+        const group = button.closest('.lbc-group');
+        const section = sectionByGroup(group);
+        const enabled = button.dataset.enabled === 'true';
+        const switches = [...group.querySelectorAll('.lbc-switch')];
+        const uids = switches.map(item => item.dataset.uid);
+        group.querySelectorAll('.lbc-action').forEach(action => { action.disabled = true; });
+        switches.forEach(item => {
+            item.disabled = true;
+            item.setAttribute('aria-checked', String(enabled));
         });
-
-        await Promise.all(cards.map(c => loadToggleStates(c)));
-        renderedPages.add(pageKey);
+        setStatus('正在批量保存...');
+        try {
+            await store.setStates(uids, enabled);
+            setStatus(`${section.label} 已更新`);
+        } catch (error) {
+            setStatus('批量保存失败，正在恢复', 'error');
+            await refreshVisibleStates(true);
+            console.error('[世界书管理器] 批量保存失败', error);
+        } finally {
+            group.querySelectorAll('.lbc-action').forEach(action => { action.disabled = false; });
+            switches.forEach(item => { item.disabled = false; });
+        }
     }
 
     function closePanel() {
-        if (!panel.classList.contains('visible')) return;
-        panel.classList.add('closing');
-        panel.classList.remove('visible');
+        panel.hidden = true;
+        launcher.setAttribute('aria-expanded', 'false');
     }
 
-    panel.addEventListener('animationend', (event) => {
-        if (event.target !== panel || event.animationName !== 'panel-close' || !panel.classList.contains('closing')) return;
-        panel.classList.remove('closing');
-        panel.style.display = 'none';
-    });
-
-    function switchPage(pageKey) {
-        if (currentPage === pageKey) return;
-        currentPage = pageKey;
-        panelBody.innerHTML = '';
-        renderedPages.delete(pageKey);
-
-        const tabs = panel.querySelectorAll('.panel-tab');
-        tabs.forEach(t => {
-            t.classList.remove('active');
-            if (t.dataset.page === pageKey) t.classList.add('active');
-        });
-
-        let sections;
-        if (pageKey === 'dlc') sections = DLC_SECTIONS;
-        else if (pageKey === 'characters') sections = CHARACTER_SECTIONS;
-        else sections = BOOK_SECTIONS;
-        renderSections(sections, pageKey);
+    function positionPanel() {
+        if (hostWindow.matchMedia('(max-width: 640px)').matches) return;
+        const launcherRect = launcher.getBoundingClientRect();
+        const width = Math.min(440, hostWindow.innerWidth - 24);
+        const height = Math.min(680, hostWindow.innerHeight - 24);
+        let left = launcherRect.left - width - 12;
+        if (left < 12) left = launcherRect.right + 12;
+        left = Math.max(12, Math.min(hostWindow.innerWidth - width - 12, left));
+        const top = Math.max(12, Math.min(hostWindow.innerHeight - height - 12, launcherRect.top));
+        panel.style.left = `${left}px`;
+        panel.style.top = `${top}px`;
     }
 
-    panel.querySelectorAll('.panel-tab').forEach(tab => {
-        tab.addEventListener('click', () => switchPage(tab.dataset.page));
-    });
+    function openPanel() {
+        panel.hidden = false;
+        launcher.setAttribute('aria-expanded', 'true');
+        positionPanel();
+        showPage(activePage);
+    }
 
-    ball.addEventListener('click', async () => {
-        if (drag.isDragging()) return;
-        if (!panel.classList.contains('visible')) {
-            positionPanel();
-            panel.classList.remove('closing');
-            panel.style.display = 'flex';
-            panel.offsetHeight;
-            panel.classList.add('visible');
-            let sections;
-            if (currentPage === 'dlc') sections = DLC_SECTIONS;
-            else if (currentPage === 'characters') sections = CHARACTER_SECTIONS;
-            else sections = BOOK_SECTIONS;
-            await renderSections(sections, currentPage);
-        } else {
-            closePanel();
+    function handlePanelClick(event) {
+        const button = event.target.closest('[data-action]');
+        if (!button || !panel.contains(button)) return;
+        const action = button.dataset.action;
+        if (action === 'close') closePanel();
+        else if (action === 'refresh') refreshVisibleStates(true);
+        else if (action === 'tab') showPage(button.dataset.page);
+        else if (action === 'group') {
+            const group = button.closest('.lbc-group');
+            group.dataset.open = String(group.dataset.open !== 'true');
+        } else if (action === 'toggle') toggleOne(button);
+        else if (action === 'batch') toggleSection(button);
+    }
+
+    function clampLauncher() {
+        if (!launcher.style.left) return;
+        const rect = launcher.getBoundingClientRect();
+        launcher.style.left = `${Math.max(0, Math.min(hostWindow.innerWidth - rect.width, rect.left))}px`;
+        launcher.style.top = `${Math.max(0, Math.min(hostWindow.innerHeight - rect.height, rect.top))}px`;
+    }
+
+    launcher.addEventListener('pointerdown', event => {
+        const rect = launcher.getBoundingClientRect();
+        const origin = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+        dragged = false;
+        launcher.setPointerCapture(event.pointerId);
+        const move = moveEvent => {
+            const dx = moveEvent.clientX - origin.x;
+            const dy = moveEvent.clientY - origin.y;
+            if (Math.abs(dx) + Math.abs(dy) > 5) dragged = true;
+            launcher.style.right = 'auto';
+            launcher.style.bottom = 'auto';
+            launcher.style.left = `${Math.max(0, Math.min(hostWindow.innerWidth - rect.width, origin.left + dx))}px`;
+            launcher.style.top = `${Math.max(0, Math.min(hostWindow.innerHeight - rect.height, origin.top + dy))}px`;
+        };
+        const up = () => {
+            launcher.removeEventListener('pointermove', move);
+            launcher.removeEventListener('pointerup', up);
+            launcher.removeEventListener('pointercancel', up);
+            if (dragged) {
+                hostWindow.localStorage.setItem('lbc-launcher-position', JSON.stringify({
+                    left: parseFloat(launcher.style.left),
+                    top: parseFloat(launcher.style.top),
+                }));
+            }
+        };
+        launcher.addEventListener('pointermove', move);
+        launcher.addEventListener('pointerup', up);
+        launcher.addEventListener('pointercancel', up);
+    }, eventOptions);
+
+    launcher.addEventListener('click', () => {
+        if (dragged) {
+            dragged = false;
+            return;
         }
-    });
+        if (panel.hidden) openPanel();
+        else closePanel();
+    }, eventOptions);
+    panel.addEventListener('click', handlePanelClick, eventOptions);
 
-    panel.querySelector('.panel-close').addEventListener('click', closePanel);
+    hostDocument.addEventListener('pointerdown', event => {
+        if (!panel.hidden && !panel.contains(event.target) && !launcher.contains(event.target)) closePanel();
+    }, eventOptions);
+    hostDocument.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closePanel();
+    }, eventOptions);
+    hostWindow.addEventListener('resize', () => {
+        clampLauncher();
+        if (!panel.hidden) positionPanel();
+    }, eventOptions);
 
-    parentDoc.addEventListener('mousedown', (e) => {
-        if (panel.classList.contains('visible') && !panel.contains(e.target) && !ball.contains(e.target)) closePanel();
-    }, listenerOptions);
-    parentDoc.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && panel.classList.contains('visible')) closePanel();
-    }, listenerOptions);
-    parentWin.addEventListener('resize', () => {
-        if (panel.classList.contains('visible')) positionPanel();
-    }, listenerOptions);
+    try {
+        const saved = JSON.parse(hostWindow.localStorage.getItem('lbc-launcher-position'));
+        if (Number.isFinite(saved?.left) && Number.isFinite(saved?.top)) {
+            launcher.style.right = 'auto';
+            launcher.style.bottom = 'auto';
+            launcher.style.left = `${saved.left}px`;
+            launcher.style.top = `${saved.top}px`;
+            clampLauncher();
+        }
+    } catch {
+        // Ignore malformed position data.
+    }
 
+    hostWindow[cleanupKey] = () => {
+        events.abort();
+        store.flush().catch(error => console.error('[世界书管理器] 清理时保存失败', error));
+        root.remove();
+        style.remove();
+    };
 })();
