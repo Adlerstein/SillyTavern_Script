@@ -22,6 +22,17 @@ function getEntryState(data, uid) {
     return entry ? entry.disable !== true : null;
 }
 
+function getOriginalEntry(data, uid) {
+    const normalizedUid = normalizeUid(uid);
+    const entries = data?.originalData?.entries;
+
+    if (!normalizedUid || !Array.isArray(entries)) {
+        return null;
+    }
+
+    return entries.find(entry => normalizeUid(entry?.uid ?? entry?.id) === normalizedUid) ?? null;
+}
+
 export function createLoreBookStore({ bookName, loadWorldInfo, saveWorldInfo }) {
     let data = null;
     let loadPromise = null;
@@ -68,6 +79,7 @@ export function createLoreBookStore({ bookName, loadWorldInfo, saveWorldInfo }) 
 
         writeQueue = writeQueue.catch(() => undefined).then(async () => {
             const worldBook = await load();
+            const beforeChange = structuredClone(worldBook);
             const changed = [];
             const missing = [];
 
@@ -79,14 +91,26 @@ export function createLoreBookStore({ bookName, loadWorldInfo, saveWorldInfo }) 
                 }
 
                 const nextDisabled = !enable;
-                if (entry.disable !== nextDisabled) {
+                const originalEntry = getOriginalEntry(worldBook, uid);
+                const canonicalChanged = entry.disable !== nextDisabled;
+                const originalChanged = originalEntry && originalEntry.enabled !== enable;
+
+                if (canonicalChanged || originalChanged) {
                     entry.disable = nextDisabled;
+                    if (originalEntry) {
+                        originalEntry.enabled = enable;
+                    }
                     changed.push(uid);
                 }
             }
 
             if (changed.length) {
-                await saveWorldInfo(bookName, structuredClone(worldBook), true, { refreshEditor: true });
+                try {
+                    await saveWorldInfo(bookName, structuredClone(worldBook), true, { refreshEditor: true });
+                } catch (error) {
+                    data = beforeChange;
+                    throw error;
+                }
             }
 
             return { changed, missing };
