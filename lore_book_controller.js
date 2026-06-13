@@ -1,14 +1,40 @@
+import { createLoreBookStore } from './lore-book-controller-store.js';
+
+// Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260613';
 (function() {
     const parentWin = window.parent ?? window;
     const parentDoc = parentWin.document;
-    const scriptId = typeof getScriptId === 'function' ? getScriptId() : 'worldbook-ball-' + Date.now();
+    const scriptId = typeof getScriptId === 'function' ? getScriptId() : 'lore-book-controller-local';
+    const cleanupKey = '__loreBookControllerLocalCleanup';
+    parentWin[cleanupKey]?.();
+    const listenerController = new parentWin.AbortController();
+    const listenerOptions = { signal: listenerController.signal };
+    parentWin[cleanupKey] = () => listenerController.abort();
 
     console.log('[悬浮球 JSON版本] 脚本开始加载...');
 
     const oldRoots = parentDoc.querySelectorAll(`[script_id="${scriptId}"]`);
     oldRoots.forEach(el => el.remove());
 
-    const BOOK_FILE = '肚子疼和乐扣的龙族世界书（长公主';
+    const BOOK_FILE = '肚子疼和乐扣的龙族世界书';
+    const getContext = () => parentWin.SillyTavern?.getContext?.() ?? globalThis.SillyTavern?.getContext?.();
+    const loreBookStore = createLoreBookStore({
+        bookName: BOOK_FILE,
+        loadWorldInfo: async name => {
+            const context = getContext();
+            if (typeof context?.loadWorldInfo !== 'function') {
+                throw new Error('SillyTavern.getContext().loadWorldInfo is unavailable');
+            }
+            return context.loadWorldInfo(name);
+        },
+        saveWorldInfo: async (...args) => {
+            const context = getContext();
+            if (typeof context?.saveWorldInfo !== 'function') {
+                throw new Error('SillyTavern.getContext().saveWorldInfo is unavailable');
+            }
+            return context.saveWorldInfo(...args);
+        },
+    });
     const BOOK_SECTIONS = [
         {
             id: 'prequel', label: '龙族前传：冰海王座', icon: '○',
@@ -241,19 +267,11 @@
                 { uid: '13', label: '楚子航' },
                 { uid: '1', label: '路明非' }
             ]
-        },
-        {
-            id: 'oc', label: 'oc:请大家多多投稿，我好凿你们(不是', icon: 'OC',
-            color: '#fb923c', accent: 'rgba(251,146,60,',
-            overview: null,
-            chapters: [
-                { uid: '222', label: '顾清寒大王' }
-            ]
         }
     ];
 
     const STYLES = `
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Serif+SC:wght@400;600;700;900&family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&family=ZCOOL+KuaiLe&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
         /* ===== DRAGON SEAL (floating ball - untouched) ===== */
         .dragon-seal {
@@ -757,6 +775,12 @@
             .dragon-seal:hover { transform: scale(0.8) !important; }
             .dragon-seal:active { transform: scale(0.7) !important; }
         }
+
+        /* Local performance profile: keep the look, remove continuous GPU-heavy effects. */
+        .seal-particles, .seal-ring, .panel-scan, .panel-noise { display: none !important; }
+        .dragon-seal.idle, .status-beacon, .sigil-ring { animation: none !important; }
+        .dragon-panel { backdrop-filter: blur(12px) saturate(1.1); }
+        .dragon-panel.visible { animation-duration: 0.18s; }
     `;
 
     // Inject CSS
@@ -789,16 +813,17 @@
             if (currentTop < 0) ball.style.top = '0px';
         }
 
-        // const savedX = parentWin.localStorage.getItem('floatingBall_x');
-        // const savedY = parentWin.localStorage.getItem('floatingBall_y');
-        const isMobile = parentWin.innerWidth <= 600;
-
-        // 强制一开始出现在屏幕正中间，暂时忽略以前的缓存位置，确保绝对能看见
-        // (球的原始尺寸是 72x80，所以中心点要减去一半的宽高 36 和 40)
-        ball.style.left = (parentWin.innerWidth / 2 - 36) + 'px';
-        ball.style.top = (parentWin.innerHeight / 2 - 40) + 'px';
-        ball.style.right = 'auto';
-        ball.style.bottom = 'auto';
+        const savedXValue = parentWin.localStorage.getItem('floatingBall_x');
+        const savedYValue = parentWin.localStorage.getItem('floatingBall_y');
+        const savedX = Number(savedXValue);
+        const savedY = Number(savedYValue);
+        if (savedXValue !== null && savedYValue !== null && Number.isFinite(savedX) && Number.isFinite(savedY)) {
+            ball.style.left = savedX + 'px';
+            ball.style.top = savedY + 'px';
+            ball.style.right = 'auto';
+            ball.style.bottom = 'auto';
+            constrainPosition();
+        }
 
         function handleDragStart(e) {
             if (e.type === 'touchstart') {
@@ -846,20 +871,9 @@
 
         ball.addEventListener('mousedown', handleDragStart);
         ball.addEventListener('touchstart', handleDragStart, { passive: false });
-        parentWin.addEventListener('resize', constrainPosition);
+        parentWin.addEventListener('resize', constrainPosition, listenerOptions);
 
         return { isDragging: () => isDragging };
-    }
-
-    async function getEntryState(uid) {
-        if (typeof triggerSlash !== 'function') return null;
-        try { const r = await triggerSlash(`/getentryfield file="${BOOK_FILE}" field=disable ${uid}`); return r.trim() === 'false'; }
-        catch (e) { return null; }
-    }
-
-    async function setEntryState(uid, enable) {
-        if (typeof triggerSlash !== 'function') throw new Error('triggerSlash null');
-        await triggerSlash(`/setentryfield file="${BOOK_FILE}" uid=${uid} field=disable ${enable ? 'false' : 'true'}`);
     }
 
     // ===== Create Dragon Seal (floating ball) =====
@@ -924,7 +938,6 @@
                 <div class="header-text">
                     <div class="header-title">世界书控制枢纽</div>
                     <div class="header-subtitle">DRAGON RAJA &middot; WORLD BOOK CONTROLLER v3.0</div>
-                    <div class="header-author">顾清寒</div>
                 </div>
             </div>
             <div class="header-divider"></div>
@@ -941,10 +954,7 @@
 
         <div class="panel-footer">
             <span class="footer-hint">点击书名展开 &middot; 拨动开关控制条目</span>
-            <div class="footer-credit">
-                <span class="credit-name">顾清寒</span>
-                <span class="credit-ver">v3.0</span>
-            </div>
+            <span class="credit-ver">LOCAL OPTIMIZED</span>
         </div>
         <div class="panel-bottom-glow"></div>
     `;
@@ -975,8 +985,14 @@
             if (el.classList.contains('loading')) return;
             el.classList.add('loading');
             const newState = !el.classList.contains('on');
-            try { await setEntryState(uid, newState); el.classList.toggle('on'); }
-            catch (e) { el.classList.add('error'); setTimeout(() => el.classList.remove('error'), 300); }
+            try {
+                await loreBookStore.setState(uid, newState);
+                el.classList.toggle('on', newState);
+            } catch (e) {
+                console.error('[世界书控制器] 保存条目失败', e);
+                el.classList.add('error');
+                setTimeout(() => el.classList.remove('error'), 300);
+            }
             finally { el.classList.remove('loading'); }
         };
         return el;
@@ -984,19 +1000,25 @@
 
     async function batchSetSection(section, enable) {
         const allUids = [...(section.overview ? [section.overview.uid] : []), ...section.chapters.map(c => c.uid)];
-        for (const uid of allUids) { try { await setEntryState(uid, enable); } catch (e) {} }
+        return loreBookStore.setStates(allUids, enable);
     }
 
     async function loadToggleStates(card) {
-        const toggles = card.querySelectorAll('.toggle');
-        await Promise.all(Array.from(toggles).map(async (toggle) => {
-            const uid = toggle.dataset.uid;
-            const state = await getEntryState(uid);
+        const toggles = Array.from(card.querySelectorAll('.toggle'));
+        let states;
+        try {
+            states = await loreBookStore.getStates(toggles.map(toggle => toggle.dataset.uid));
+        } catch (e) {
+            console.error('[世界书控制器] 加载世界书失败', e);
+            states = new Map(toggles.map(toggle => [toggle.dataset.uid, null]));
+        }
+        toggles.forEach(toggle => {
+            const state = states.get(toggle.dataset.uid);
             toggle.classList.remove('on', 'unknown');
             if (state === true) toggle.classList.add('on');
             else if (state === null) toggle.classList.add('unknown');
             toggle.classList.remove('loading');
-        }));
+        });
     }
 
     const renderedPages = new Set();
@@ -1177,12 +1199,12 @@
 
     parentDoc.addEventListener('mousedown', (e) => {
         if (panel.classList.contains('visible') && !panel.contains(e.target) && !ball.contains(e.target)) closePanel();
-    });
+    }, listenerOptions);
     parentDoc.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && panel.classList.contains('visible')) closePanel();
-    });
+    }, listenerOptions);
     parentWin.addEventListener('resize', () => {
         if (panel.classList.contains('visible')) positionPanel();
-    });
+    }, listenerOptions);
 
 })();
