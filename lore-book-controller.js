@@ -1,6 +1,6 @@
-import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-2';
+import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-3';
 
-// Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260614-2';
+// Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260614-3';
 (function initLoreBookController() {
     const hostWindow = window.parent ?? window;
     const hostDocument = hostWindow.document;
@@ -308,6 +308,9 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
             pointer-events: auto;
             touch-action: none;
             backdrop-filter: blur(14px);
+            z-index: 2147483647;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
         .lbc-launcher:active { cursor: grabbing; }
         .lbc-launcher svg { width: 24px; height: 24px; pointer-events: none; }
@@ -457,6 +460,17 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
             .lbc-group-head, .lbc-row { min-height: 54px; }
             .lbc-action { min-height: 42px; }
         }
+        .lbc-root[data-compact="true"] .lbc-launcher { width: 58px; height: 58px; }
+        .lbc-root[data-compact="true"] .lbc-panel {
+            border-width: 1px 0 0;
+            border-radius: 18px 18px 0 0;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .lbc-root[data-compact="true"] .lbc-header { padding: 14px 16px 10px; }
+        .lbc-root[data-compact="true"] .lbc-pages { padding: 8px 8px 16px; }
+        .lbc-root[data-compact="true"] .lbc-group-head,
+        .lbc-root[data-compact="true"] .lbc-row { min-height: 54px; }
+        .lbc-root[data-compact="true"] .lbc-action { min-height: 42px; }
         @media (prefers-reduced-motion: reduce) {
             .lbc-root * { transition: none !important; }
         }
@@ -492,6 +506,7 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
     const tabs = root.querySelector('.lbc-tabs');
     const pageHost = root.querySelector('.lbc-pages');
     const status = root.querySelector('.lbc-status');
+    const viewport = hostWindow.visualViewport;
     const builtPages = new Map();
     let activePage = 'story';
     let dragged = false;
@@ -663,7 +678,20 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
     }
 
     function positionPanel() {
-        if (hostWindow.matchMedia('(max-width: 640px)').matches) return;
+        if (root.dataset.compact === 'true') {
+            const viewportLeft = viewport?.offsetLeft ?? 0;
+            const viewportTop = viewport?.offsetTop ?? 0;
+            const viewportWidth = viewport?.width ?? hostWindow.innerWidth;
+            const viewportHeight = viewport?.height ?? hostWindow.innerHeight;
+            const panelHeight = Math.min(720, viewportHeight * 0.82);
+            panel.style.setProperty('left', `${viewportLeft}px`, 'important');
+            panel.style.setProperty('right', 'auto', 'important');
+            panel.style.setProperty('bottom', 'auto', 'important');
+            panel.style.setProperty('top', `${viewportTop + viewportHeight - panelHeight}px`, 'important');
+            panel.style.setProperty('width', `${viewportWidth}px`, 'important');
+            panel.style.setProperty('max-height', `${panelHeight}px`, 'important');
+            return;
+        }
         const launcherRect = launcher.getBoundingClientRect();
         const width = Math.min(440, hostWindow.innerWidth - 24);
         const height = Math.min(680, hostWindow.innerHeight - 24);
@@ -673,6 +701,27 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
         const top = Math.max(12, Math.min(hostWindow.innerHeight - height - 12, launcherRect.top));
         panel.style.left = `${left}px`;
         panel.style.top = `${top}px`;
+    }
+
+    function syncCompactLayout() {
+        const viewportWidth = viewport?.width ?? hostWindow.innerWidth;
+        const viewportHeight = viewport?.height ?? hostWindow.innerHeight;
+        const viewportLeft = viewport?.offsetLeft ?? 0;
+        const viewportTop = viewport?.offsetTop ?? 0;
+        const compact = viewportWidth <= 700 || hostWindow.matchMedia('(max-width: 640px)').matches;
+        root.dataset.compact = String(compact);
+
+        if (compact) {
+            const launcherSize = 58;
+            launcher.style.right = 'auto';
+            launcher.style.bottom = 'auto';
+            launcher.style.left = `${Math.max(viewportLeft + 8, viewportLeft + viewportWidth - launcherSize - 14)}px`;
+            launcher.style.top = `${Math.max(viewportTop + 8, viewportTop + viewportHeight - launcherSize - 82)}px`;
+        } else {
+            ['left', 'right', 'bottom', 'top', 'width', 'max-height'].forEach(property => panel.style.removeProperty(property));
+        }
+
+        if (!panel.hidden) positionPanel();
     }
 
     function openPanel() {
@@ -750,13 +799,17 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
         if (event.key === 'Escape') closePanel();
     }, eventOptions);
     hostWindow.addEventListener('resize', () => {
-        clampLauncher();
+        syncCompactLayout();
+        if (root.dataset.compact !== 'true') clampLauncher();
         if (!panel.hidden) positionPanel();
     }, eventOptions);
+    viewport?.addEventListener('resize', syncCompactLayout, eventOptions);
+    viewport?.addEventListener('scroll', syncCompactLayout, eventOptions);
 
     try {
         const saved = JSON.parse(hostWindow.localStorage.getItem('lbc-launcher-position'));
-        if (Number.isFinite(saved?.left) && Number.isFinite(saved?.top)) {
+        const compact = (viewport?.width ?? hostWindow.innerWidth) <= 700;
+        if (!compact && Number.isFinite(saved?.left) && Number.isFinite(saved?.top)) {
             launcher.style.right = 'auto';
             launcher.style.bottom = 'auto';
             launcher.style.left = `${saved.left}px`;
@@ -766,6 +819,7 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
     } catch {
         // Ignore malformed position data.
     }
+    syncCompactLayout();
 
     hostWindow[cleanupKey] = () => {
         events.abort();
