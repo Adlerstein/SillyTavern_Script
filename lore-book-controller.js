@@ -1,6 +1,6 @@
-import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-3';
+import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-4';
 
-// Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260614-3';
+// Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260614-4';
 (function initLoreBookController() {
     const hostWindow = window.parent ?? window;
     const hostDocument = hostWindow.document;
@@ -460,7 +460,7 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
             .lbc-group-head, .lbc-row { min-height: 54px; }
             .lbc-action { min-height: 42px; }
         }
-        .lbc-root[data-compact="true"] .lbc-launcher { width: 58px; height: 58px; }
+        .lbc-root[data-compact="true"] .lbc-launcher { display: none; }
         .lbc-root[data-compact="true"] .lbc-panel {
             border-width: 1px 0 0;
             border-radius: 18px 18px 0 0;
@@ -510,6 +510,9 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
     const builtPages = new Map();
     let activePage = 'story';
     let dragged = false;
+    let forceCompact = false;
+    let wandRetryTimer;
+    let wandRetryCount = 0;
 
     function element(tag, className, text) {
         const node = hostDocument.createElement(tag);
@@ -675,6 +678,8 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
     function closePanel() {
         panel.hidden = true;
         launcher.setAttribute('aria-expanded', 'false');
+        forceCompact = false;
+        syncCompactLayout();
     }
 
     function positionPanel() {
@@ -705,30 +710,52 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
 
     function syncCompactLayout() {
         const viewportWidth = viewport?.width ?? hostWindow.innerWidth;
-        const viewportHeight = viewport?.height ?? hostWindow.innerHeight;
-        const viewportLeft = viewport?.offsetLeft ?? 0;
-        const viewportTop = viewport?.offsetTop ?? 0;
-        const compact = viewportWidth <= 700 || hostWindow.matchMedia('(max-width: 640px)').matches;
+        const compact = forceCompact || viewportWidth <= 700 || hostWindow.matchMedia('(max-width: 640px)').matches;
         root.dataset.compact = String(compact);
 
-        if (compact) {
-            const launcherSize = 58;
-            launcher.style.right = 'auto';
-            launcher.style.bottom = 'auto';
-            launcher.style.left = `${Math.max(viewportLeft + 8, viewportLeft + viewportWidth - launcherSize - 14)}px`;
-            launcher.style.top = `${Math.max(viewportTop + 8, viewportTop + viewportHeight - launcherSize - 82)}px`;
-        } else {
+        if (!compact) {
             ['left', 'right', 'bottom', 'top', 'width', 'max-height'].forEach(property => panel.style.removeProperty(property));
         }
 
         if (!panel.hidden) positionPanel();
     }
 
-    function openPanel() {
+    function openPanel(fromWandMenu = false) {
+        forceCompact = fromWandMenu;
+        syncCompactLayout();
         panel.hidden = false;
         launcher.setAttribute('aria-expanded', 'true');
         positionPanel();
         showPage(activePage);
+    }
+
+    function registerWandMenuEntry() {
+        const extensionsMenu = hostDocument.getElementById('extensionsMenu');
+        if (!extensionsMenu) {
+            if (wandRetryCount++ < 30) wandRetryTimer = setTimeout(registerWandMenuEntry, 1000);
+            return;
+        }
+
+        if (hostDocument.getElementById('lbc-wand-menu-container')) return;
+
+        const container = element('div', 'extension_container interactable');
+        container.id = 'lbc-wand-menu-container';
+        container.dataset.lbcOwner = scriptId;
+        container.tabIndex = 0;
+
+        const item = element('div', 'list-group-item flex-container flexGap5 interactable');
+        item.id = 'lbc-wand-menu-item';
+        item.title = '打开世界书管理器';
+        item.innerHTML = '<div class="fa-fw fa-solid fa-book-open extensionsMenuExtensionButton"></div><span>世界书管理器</span>';
+        item.addEventListener('click', event => {
+            event.preventDefault();
+            const wandButton = hostDocument.getElementById('extensionsMenuButton');
+            if (hostWindow.getComputedStyle(extensionsMenu).display !== 'none') wandButton?.click();
+            openPanel(true);
+        }, eventOptions);
+
+        container.append(item);
+        extensionsMenu.append(container);
     }
 
     function handlePanelClick(event) {
@@ -787,7 +814,7 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
             dragged = false;
             return;
         }
-        if (panel.hidden) openPanel();
+        if (panel.hidden) openPanel(false);
         else closePanel();
     }, eventOptions);
     panel.addEventListener('click', handlePanelClick, eventOptions);
@@ -820,11 +847,12 @@ import { createLoreBookStore } from './lore-book-controller-store.js?v=20260614-
         // Ignore malformed position data.
     }
     syncCompactLayout();
+    registerWandMenuEntry();
 
     hostWindow[cleanupKey] = () => {
         events.abort();
+        clearTimeout(wandRetryTimer);
         store.flush().catch(error => console.error('[世界书管理器] 清理时保存失败', error));
-        root.remove();
-        style.remove();
+        hostDocument.querySelectorAll(`[data-lbc-owner="${scriptId}"]`).forEach(node => node.remove());
     };
 })();
