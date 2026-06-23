@@ -1,11 +1,11 @@
 import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/SillyTavern_Script@1bbded69af6fa712c5d376821c549ccf7d1d776d/lore-book-controller-store.js?v=20260614-4';
+import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry, findLegacyEntry, joinKeys, maxDisplayIndex, moduleFromComment, nextUid, nodeKind, orderFor, removeEntryByUid, setEntryShape, splitKeys, templateUid, uidKey, updateEntryFields } from './green-lore-book-controller-core.js?v=20260623-core1';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
     const hostDocument = hostWindow.document;
     const scriptId = typeof globalThis.getScriptId === 'function' ? globalThis.getScriptId() : 'green-lore-book-controller-local';
     const cleanupKey = '__greenLoreBookControllerCleanup';
-    const BOOK_FILE = '绿茵好莱坞';
 
     hostWindow[cleanupKey]?.();
     hostDocument.querySelectorAll(`[data-glbc-owner="${scriptId}"]`).forEach(node => node.remove());
@@ -31,104 +31,6 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
     });
 
-    const TREE = [
-        {
-            id: 'world', label: '绿茵世界树', icon: '树', color: '#22c55e', start: [20, '世界树开始'], end: [21, '世界树结束'],
-            children: [
-                {
-                    id: 'timeline', label: '时间线', icon: '年', color: '#22c55e', start: [90, '时间线开始'], end: [99, '时间线结束'],
-                    overview: [35, '时间线总览'],
-                    children: [[100, '1998年'], [101, '1999年'], [102, '2000年'], [103, '2001年'], [104, '2002年'], [105, '2003年'], [106, '2004年'], [107, '2005年'], [108, '2006年']],
-                },
-                {
-                    id: 'league', label: '联赛', icon: '赛', color: '#f59e0b', start: [190, '联赛开始'], end: [199, '联赛结束'],
-                    overview: [30, '联赛总览'],
-                    children: [[200, '英超'], [201, '德甲'], [202, '西甲'], [203, '意甲'], [204, '法甲'], [205, '欧冠'], [206, '国家队赛事']],
-                },
-                {
-                    id: 'club', label: '俱乐部信息', icon: '俱', color: '#ef4444', start: [290, '俱乐部开始'], end: [299, '俱乐部结束'],
-                    overview: [31, '重要俱乐部简表'],
-                    children: [[300, '拜仁慕尼黑'], [301, '曼联'], [302, '皇家马德里'], [303, '巴塞罗那'], [304, 'AC米兰'], [305, '尤文图斯'], [306, '阿森纳'], [307, '切尔西']],
-                },
-                {
-                    id: 'tactic', label: '战术', icon: '术', color: '#a855f7', start: [390, '战术开始'], end: [399, '战术结束'],
-                    overview: [32, '战术总览'],
-                    children: [[400, '传统442'], [401, '三中卫体系'], [402, '圣诞树/4312'], [403, '433/4231'], [404, '防守反击'], [405, '传控与高压']],
-                },
-                {
-                    id: 'position', label: '球场位置', icon: '位', color: '#14b8a6', start: [490, '球场位置开始'], end: [499, '球场位置结束'],
-                    overview: [33, '球场位置总览'],
-                    extra: [[34, '青训与职业路径总览']],
-                    children: [[500, '门将'], [501, '中后卫'], [502, '边后卫/翼卫'], [503, '后腰/中前卫'], [504, '前腰/边锋'], [505, '中锋']],
-                },
-                {
-                    id: 'rules', label: '常开规则', icon: '规', color: '#60a5fa',
-                    children: [],
-                },
-            ],
-        },
-    ];
-
-    const uidKey = value => String(value ?? '').trim();
-    const clone = value => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
-    const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-    const splitKeys = value => String(value ?? '').split(/[,，\n]/).map(item => item.trim()).filter(Boolean);
-    const joinKeys = keys => Array.isArray(keys) ? keys.join('，') : '';
-    const STATIC_UIDS = new Set(flattenTree().map(uidKey));
-    const MODULES = {
-        timeline: { label: '时间线', prefix: '[timeline]', blueOrder: 51, greenOrder: 56 },
-        rules: { label: '常开规则', prefix: '[rule]', blueOrder: 24, greenOrder: 26 },
-        league: { label: '联赛', prefix: '[league]', blueOrder: 61, greenOrder: 66 },
-        club: { label: '俱乐部信息', prefix: '[club]', blueOrder: 71, greenOrder: 76 },
-        tactic: { label: '战术', prefix: '[tactic]', blueOrder: 81, greenOrder: 86 },
-        position: { label: '球场位置', prefix: '[position]', blueOrder: 91, greenOrder: 96 },
-        overview: { label: '世界树结构', prefix: '[overview]', blueOrder: 41, greenOrder: 46 },
-        section: { label: '一级主干', prefix: '[section]', blueOrder: 45, greenOrder: 46 },
-    };
-
-    function findEntry(book, uid) {
-        const key = uidKey(uid);
-        const entries = book?.entries;
-        if (!key || !entries) return null;
-        if (!Array.isArray(entries) && entries[key]) return entries[key];
-        return Object.values(entries).find(entry => uidKey(entry?.uid ?? entry?.id) === key) ?? null;
-    }
-
-    function findLegacyEntry(book, uid) {
-        const key = uidKey(uid);
-        const entries = book?.originalData?.entries;
-        if (!key || !Array.isArray(entries)) return null;
-        return entries.find(entry => uidKey(entry?.uid ?? entry?.id) === key) ?? null;
-    }
-
-    function entryKeys(entry) {
-        if (!entry) return [];
-        if (Array.isArray(entry.key)) return entry.key;
-        if (Array.isArray(entry.keys)) return entry.keys;
-        return [];
-    }
-
-    function nextUid(book) {
-        const entries = Object.values(book?.entries ?? {});
-        const ids = entries.map(entry => Number(entry?.uid ?? entry?.id)).filter(Number.isFinite);
-        return String(Math.max(0, ...ids) + 1);
-    }
-
-    function moduleFromComment(comment) {
-        const text = String(comment ?? '');
-        if (text.startsWith('[timeline]')) return 'timeline';
-        if (text.startsWith('[league]')) return 'league';
-        if (text.startsWith('[club]')) return 'club';
-        if (text.startsWith('[tactic]')) return 'tactic';
-        if (text.startsWith('[position]')) return 'position';
-        if (text.startsWith('[rule]') || text.startsWith('[rules]')) return 'rules';
-        if (text.startsWith('[overview]') || text.startsWith('[tree]')) return 'overview';
-        const sectionMatch = text.match(/^\[section:(\d+)\]/);
-        if (sectionMatch) return `section:${sectionMatch[1]}`;
-        if (text.startsWith('[section]')) return 'section';
-        return 'rules';
-    }
-
     const css = `
         .glbc-root,.glbc-root *{box-sizing:border-box}
         .glbc-root{--bg:var(--SmartThemeBlurTintColor,#20242b);--text:var(--SmartThemeBodyColor,#f1f3f5);--surface:color-mix(in srgb,var(--bg) 91%,var(--text) 9%);--hover:color-mix(in srgb,var(--bg) 82%,var(--text) 18%);--border:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);--muted:color-mix(in srgb,var(--text) 64%,var(--bg) 36%);--accent:var(--SmartThemeQuoteColor,#79a7ff);position:fixed;inset:0;z-index:2147483600;pointer-events:none;font:14px/1.45 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:var(--text)}
@@ -136,7 +38,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         .glbc-panel{position:fixed;width:min(980px,calc(100vw - 24px));height:min(760px,calc(100vh - 24px));display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;border:1px solid var(--border);border-radius:16px;background:var(--bg);box-shadow:0 18px 60px rgb(0 0 0 / 38%);pointer-events:auto;backdrop-filter:blur(18px);z-index:2147483646}
         .glbc-panel[hidden]{display:none}
         .glbc-header,.glbc-footer{display:flex;align-items:center;gap:10px;padding:12px 14px}.glbc-header{border-bottom:1px solid var(--border)}.glbc-footer{min-height:42px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}.glbc-title{min-width:0;flex:1}.glbc-title strong,.glbc-title span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-title span{color:var(--muted);font-size:12px}
-        .glbc-icon-button,.glbc-action,.glbc-switch,.glbc-tree-head,.glbc-edit-button,.glbc-group-add{border:0;color:inherit;font:inherit;cursor:pointer}.glbc-icon-button{width:38px;height:38px;border-radius:10px;background:transparent;font-size:20px}.glbc-icon-button:hover,.glbc-action:hover,.glbc-tree-row:hover,.glbc-edit-button:hover,.glbc-group-add:hover{background:var(--hover)}
+        .glbc-icon-button,.glbc-action,.glbc-switch,.glbc-tree-head,.glbc-edit-button,.glbc-group-add{border:0;color:inherit;font:inherit;cursor:pointer}.glbc-icon-button{width:38px;height:38px;border-radius:10px;background:transparent;font-size:20px}.glbc-icon-button:hover,.glbc-action:hover,.glbc-tree-row:hover,.glbc-edit-button:hover,.glbc-group-add:hover{background:var(--hover)}.glbc-action.danger{background:color-mix(in srgb,#ef4444 22%,var(--hover));color:#ffb4b4}.glbc-action.danger:hover{background:color-mix(in srgb,#ef4444 34%,var(--hover))}
         .glbc-body{min-height:0;display:grid;grid-template-columns:minmax(390px,44%) minmax(0,1fr)}
         .glbc-tree{min-height:0;overflow:auto;padding:12px 10px 12px 12px;border-right:1px solid var(--border)}.glbc-editor{min-height:0;display:grid;grid-template-rows:none;align-content:start;overflow:auto;padding:12px;gap:10px}
         .glbc-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:10px}.glbc-search{width:100%;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:0 10px}
@@ -206,30 +108,6 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     function setStatus(message, kind = '') {
         status.textContent = message;
         status.dataset.kind = kind;
-    }
-
-    function flattenTree(nodes = TREE, result = []) {
-        for (const node of nodes) {
-            if (node.start) result.push(node.start[0]);
-            if (node.overview) result.push(node.overview[0]);
-            if (node.extra) node.extra.forEach(item => result.push(item[0]));
-            if (node.children?.length) {
-                if (Array.isArray(node.children[0])) node.children.forEach(item => result.push(item[0]));
-                else flattenTree(node.children, result);
-            }
-            if (node.end) result.push(node.end[0]);
-        }
-        return result;
-    }
-
-    function nodeKind(entry) {
-        if (!entry) return 'tag';
-        if (entry.constant && !entry.selective) {
-            const content = String(entry.content ?? '');
-            return /^<\/?[^>]+>$/.test(content.trim()) ? 'tag' : 'blue';
-        }
-        if (!entry.constant && entry.selective) return 'green';
-        return 'blue';
     }
 
     function makeSwitch(uid) {
@@ -445,6 +323,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
             treeHost.querySelectorAll('.glbc-tree-row').forEach(row => row.classList.toggle('is-active', row.dataset.uid === activeUid));
         }
         const kind = nodeKind(entry);
+        const canDelete = !STATIC_UIDS.has(uidKey(uid));
         editor.innerHTML = `
             <div class="glbc-form-row">
                 <label>节点标题</label>
@@ -465,6 +344,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
                 <textarea class="glbc-textarea" data-field="content">${esc(entry.content ?? '')}</textarea>
             </div>
             <div class="glbc-editor-actions">
+                ${canDelete ? '<button class="glbc-action danger" type="button" data-action="delete-entry">删除节点</button>' : ''}
                 <button class="glbc-action" type="button" data-action="reload-entry">放弃修改</button>
                 <button class="glbc-action primary" type="button" data-action="save-entry">保存节点</button>
             </div>`;
@@ -521,59 +401,10 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
             </div>`;
     }
 
-    function updateEntryFields(entry, comment, content, keys) {
-        entry.comment = comment;
-        entry.content = content;
-        if ('key' in entry || !('keys' in entry)) entry.key = keys;
-        if ('keys' in entry) entry.keys = keys;
-    }
 
-    function templateUid(moduleId, kind) {
-        if (kind === 'section' || moduleId?.startsWith?.('section:')) return 34;
-        if (kind === 'blue' || kind === 'rule') {
-            return ({ timeline: 35, rules: 3, league: 30, club: 31, tactic: 32, position: 33, overview: 34 })[moduleId] ?? 35;
-        }
-        return ({ timeline: 100, rules: 5, league: 201, club: 300, tactic: 400, position: 505, overview: 34 })[moduleId] ?? 100;
-    }
 
-    function maxDisplayIndex(book) {
-        return Math.max(0, ...Object.values(book?.entries ?? {}).map(entry => Number(entry?.displayIndex ?? entry?.extensions?.display_index ?? 0)).filter(Number.isFinite));
-    }
 
-    function orderFor(moduleId, kind) {
-        if (kind === 'section' || moduleId === 'section') return MODULES.section.blueOrder;
-        if (moduleId?.startsWith?.('section:')) return kind === 'green' ? MODULES.section.greenOrder : MODULES.section.blueOrder;
-        const module = MODULES[moduleId] ?? MODULES.rules;
-        if (kind === 'green') return module.greenOrder;
-        return module.blueOrder;
-    }
 
-    function setEntryShape(entry, { uid, moduleId, kind, comment, content, keys }) {
-        const id = Number(uid);
-        entry.uid = id;
-        if ('id' in entry) entry.id = id;
-        const prefix = kind === 'section'
-            ? MODULES.section.prefix
-            : (moduleId?.startsWith?.('section:') ? `[${moduleId}]` : MODULES[moduleId].prefix);
-        entry.comment = comment.startsWith(prefix) ? comment : `${prefix}${comment}`;
-        entry.content = content;
-        entry.constant = kind === 'blue' || kind === 'rule' || kind === 'section';
-        entry.selective = kind === 'green';
-        entry.disable = false;
-        entry.order = orderFor(moduleId, kind);
-        entry.depth = 4;
-        entry.position = 0;
-        const finalKeys = kind === 'green' ? keys : [];
-        entry.key = finalKeys;
-        if ('keys' in entry) entry.keys = finalKeys;
-        if (entry.extensions) {
-            entry.extensions.depth = 4;
-            entry.extensions.position = 0;
-            entry.extensions.display_index = entry.displayIndex;
-            entry.extensions.vectorized = false;
-            entry.extensions.triggers = entry.extensions.triggers ?? [];
-        }
-    }
 
     async function createEntry() {
         const book = await store.load();
@@ -611,6 +442,38 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
             Object.assign(book, snapshot);
             setStatus('创建节点失败', 'error');
             console.error('[绿茵世界书管理器] 创建节点失败', error);
+        }
+    }
+
+
+    async function deleteActiveEntry() {
+        if (!activeUid || STATIC_UIDS.has(uidKey(activeUid))) return;
+        const book = await store.load();
+        const entry = findEntry(book, activeUid);
+        if (!entry) throw new Error(`Entry not found: ${activeUid}`);
+        const title = String(entry.comment ?? `#${activeUid}`);
+        const childEntries = moduleFromComment(entry.comment) === 'section'
+            ? Object.values(book?.entries ?? {}).filter(item => moduleFromComment(item?.comment) === `section:${activeUid}`)
+            : [];
+        const message = childEntries.length
+            ? `确定删除「${title}」以及它下面的 ${childEntries.length} 个子条目吗？`
+            : `确定删除「${title}」吗？`;
+        if (!hostWindow.confirm(message)) return;
+        const snapshot = clone(book);
+        try {
+            removeEntryByUid(book, activeUid);
+            childEntries.forEach(item => removeEntryByUid(book, item?.uid ?? item?.id));
+            setStatus('正在删除节点...');
+            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
+            const deletedCount = childEntries.length + 1;
+            activeUid = '';
+            editor.innerHTML = `<div class="glbc-editor-empty">已删除 ${deletedCount} 个节点。</div>`;
+            setStatus(`已删除 ${deletedCount} 个节点`);
+            await refreshTree(true);
+        } catch (error) {
+            Object.assign(book, snapshot);
+            setStatus('删除节点失败', 'error');
+            console.error('[绿茵世界书管理器] 删除节点失败', error);
         }
     }
 
@@ -753,6 +616,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         } else if (action === 'toggle') void toggleOne(button);
         else if (action === 'edit') void renderEditor(button.dataset.uid);
         else if (action === 'save-entry') void saveActiveEntry();
+        else if (action === 'delete-entry') void deleteActiveEntry();
         else if (action === 'reload-entry') void renderEditor(activeUid);
         else if (action === 'new-entry') renderNewEntryForm(button.dataset.module);
         else if (action === 'create-entry') void createEntry();
