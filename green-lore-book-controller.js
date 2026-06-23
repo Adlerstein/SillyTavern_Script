@@ -83,6 +83,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         tactic: { label: '战术', prefix: '[tactic]', blueOrder: 81, greenOrder: 86 },
         position: { label: '球场位置', prefix: '[position]', blueOrder: 91, greenOrder: 96 },
         overview: { label: '世界树结构', prefix: '[overview]', blueOrder: 41, greenOrder: 46 },
+        section: { label: '一级主干', prefix: '[section]', blueOrder: 45, greenOrder: 46 },
     };
 
     function findEntry(book, uid) {
@@ -122,6 +123,9 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         if (text.startsWith('[position]')) return 'position';
         if (text.startsWith('[rule]') || text.startsWith('[rules]')) return 'rules';
         if (text.startsWith('[overview]') || text.startsWith('[tree]')) return 'overview';
+        const sectionMatch = text.match(/^\[section:(\d+)\]/);
+        if (sectionMatch) return `section:${sectionMatch[1]}`;
+        if (text.startsWith('[section]')) return 'section';
         return 'rules';
     }
 
@@ -275,16 +279,34 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         return group;
     }
 
+    function makeDynamicSectionGroup(entry, level = 1) {
+        const uid = uidKey(entry?.uid ?? entry?.id);
+        const label = String(entry?.comment ?? '').replace(/^\[section\]/, '').trim() || `一级主干 #${uid}`;
+        const group = makeGroup({
+            id: `section:${uid}`,
+            label,
+            icon: '纲',
+            color: '#38bdf8',
+            start: [uid, label],
+            children: [],
+        }, level);
+        group.classList.add('is-dynamic-section');
+        group.dataset.sectionUid = uid;
+        return group;
+    }
+
     function buildTree() {
         treeHost.replaceChildren(...TREE.map(node => makeGroup(node, 0)));
     }
 
     function groupBodyByModule(moduleId) {
+        if (moduleId?.startsWith?.('section:')) return treeHost.querySelector(`[data-group-id="${moduleId}"] > .glbc-tree-children`);
         if (moduleId === 'overview') return treeHost.querySelector('[data-group-id="world"] > .glbc-tree-children');
         return treeHost.querySelector(`[data-group-id="${moduleId}"] > .glbc-tree-children`);
     }
 
     function endUidsForModule(moduleId) {
+        if (moduleId?.startsWith?.('section:')) return [];
         if (moduleId === 'overview') return ['21'];
         if (moduleId === 'rules') return ['21'];
         return {
@@ -298,13 +320,25 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
 
     function syncDynamicRows(book) {
         treeHost.querySelectorAll('.glbc-tree-row.is-dynamic').forEach(row => row.remove());
+        treeHost.querySelectorAll('.glbc-tree-group.is-dynamic-section').forEach(group => group.remove());
         const entries = Object.values(book?.entries ?? {})
             .filter(entry => !STATIC_UIDS.has(uidKey(entry?.uid ?? entry?.id)))
             .sort((a, b) => Number(a?.displayIndex ?? a?.uid ?? 0) - Number(b?.displayIndex ?? b?.uid ?? 0));
+        const worldBody = groupBodyByModule('overview');
+        const worldEndRow = worldBody ? [...worldBody.querySelectorAll(':scope > .glbc-tree-row')]
+            .find(item => item.dataset.uid === '21') : null;
+        for (const entry of entries) {
+            const uid = uidKey(entry?.uid ?? entry?.id);
+            if (!uid || moduleFromComment(entry.comment) !== 'section' || !worldBody) continue;
+            const group = makeDynamicSectionGroup(entry, 1);
+            if (worldEndRow) worldBody.insertBefore(group, worldEndRow);
+            else worldBody.append(group);
+        }
         for (const entry of entries) {
             const uid = uidKey(entry?.uid ?? entry?.id);
             if (!uid) continue;
             const moduleId = moduleFromComment(entry.comment);
+            if (moduleId === 'section') continue;
             const body = groupBodyByModule(moduleId);
             if (!body) continue;
             const row = makeEntryRow(uid, entry.comment || `自定义节点 ${uid}`, 1);
@@ -439,9 +473,18 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     function renderNewEntryForm(defaultModule = 'rules') {
         activeUid = '';
         treeHost.querySelectorAll('.glbc-tree-row').forEach(row => row.classList.remove('is-active'));
-        const selectedModule = MODULES[defaultModule] ? defaultModule : 'rules';
-        const selectedKind = selectedModule === 'rules' || selectedModule === 'overview' ? 'rule' : 'green';
-        const moduleOptions = Object.entries(MODULES).map(([value, item]) => `<option value="${value}"${value === selectedModule ? ' selected' : ''}>${esc(item.label)}</option>`).join('');
+        const dynamicSections = [...treeHost.querySelectorAll('.glbc-tree-group.is-dynamic-section')]
+            .map(group => ({ value: group.dataset.groupId, label: group.querySelector('.glbc-tree-name')?.textContent || group.dataset.groupId }));
+        const selectedModule = defaultModule === 'world'
+            ? 'section'
+            : (MODULES[defaultModule] || defaultModule?.startsWith?.('section:') ? defaultModule : 'rules');
+        const selectedKind = selectedModule === 'section' ? 'section' : (selectedModule === 'rules' || selectedModule === 'overview' ? 'rule' : 'green');
+        const baseModuleOptions = Object.entries(MODULES)
+            .filter(([value]) => value !== 'section')
+            .map(([value, item]) => `<option value="${value}"${value === selectedModule ? ' selected' : ''}>${esc(item.label)}</option>`).join('');
+        const sectionOption = `<option value="section"${selectedModule === 'section' ? ' selected' : ''}>一级主干</option>`;
+        const dynamicOptions = dynamicSections.map(item => `<option value="${esc(item.value)}"${item.value === selectedModule ? ' selected' : ''}>${esc(item.label)} · 子条目</option>`).join('');
+        const moduleOptions = `${sectionOption}${baseModuleOptions}${dynamicOptions}`;
         editor.innerHTML = `
             <div class="glbc-form-row">
                 <label>挂载模块</label>
@@ -450,6 +493,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
             <div class="glbc-form-row">
                 <label>节点类型</label>
                 <select class="glbc-select" data-field="new-kind">
+                    <option value="section"${selectedKind === 'section' ? ' selected' : ''}>一级主干/一级标题</option>
                     <option value="green"${selectedKind === 'green' ? ' selected' : ''}>绿灯子条目</option>
                     <option value="blue"${selectedKind === 'blue' ? ' selected' : ''}>蓝灯大节点/树干</option>
                     <option value="rule"${selectedKind === 'rule' ? ' selected' : ''}>常开规则/树干</option>
@@ -485,6 +529,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     }
 
     function templateUid(moduleId, kind) {
+        if (kind === 'section' || moduleId?.startsWith?.('section:')) return 34;
         if (kind === 'blue' || kind === 'rule') {
             return ({ timeline: 35, rules: 3, league: 30, club: 31, tactic: 32, position: 33, overview: 34 })[moduleId] ?? 35;
         }
@@ -496,6 +541,8 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     }
 
     function orderFor(moduleId, kind) {
+        if (kind === 'section' || moduleId === 'section') return MODULES.section.blueOrder;
+        if (moduleId?.startsWith?.('section:')) return kind === 'green' ? MODULES.section.greenOrder : MODULES.section.blueOrder;
         const module = MODULES[moduleId] ?? MODULES.rules;
         if (kind === 'green') return module.greenOrder;
         return module.blueOrder;
@@ -505,9 +552,12 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         const id = Number(uid);
         entry.uid = id;
         if ('id' in entry) entry.id = id;
-        entry.comment = comment.startsWith(MODULES[moduleId].prefix) ? comment : `${MODULES[moduleId].prefix}${comment}`;
+        const prefix = kind === 'section'
+            ? MODULES.section.prefix
+            : (moduleId?.startsWith?.('section:') ? `[${moduleId}]` : MODULES[moduleId].prefix);
+        entry.comment = comment.startsWith(prefix) ? comment : `${prefix}${comment}`;
         entry.content = content;
-        entry.constant = kind === 'blue' || kind === 'rule';
+        entry.constant = kind === 'blue' || kind === 'rule' || kind === 'section';
         entry.selective = kind === 'green';
         entry.disable = false;
         entry.order = orderFor(moduleId, kind);
@@ -528,7 +578,8 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     async function createEntry() {
         const book = await store.load();
         const moduleId = editor.querySelector('[data-field="new-module"]')?.value || 'overview';
-        const kind = editor.querySelector('[data-field="new-kind"]')?.value || 'green';
+        const selectedKind = editor.querySelector('[data-field="new-kind"]')?.value || 'green';
+        const kind = moduleId === 'section' ? 'section' : (selectedKind === 'section' ? 'section' : selectedKind);
         const rawComment = editor.querySelector('[data-field="new-comment"]')?.value.trim() || '新资料节点';
         const content = editor.querySelector('[data-field="new-content"]')?.value ?? '';
         const keys = splitKeys(editor.querySelector('[data-field="new-keys"]')?.value ?? '');
