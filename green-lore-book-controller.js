@@ -12,6 +12,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
 
     const events = new hostWindow.AbortController();
     const eventOptions = { signal: events.signal };
+    const viewport = hostWindow.visualViewport;
     const getContext = () => hostWindow.SillyTavern?.getContext?.() ?? globalThis.SillyTavern?.getContext?.();
     const getLoadWorldInfo = () => {
         const context = getContext();
@@ -142,6 +143,10 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         .glbc-edit-button{width:30px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center}
         .glbc-editor-empty{height:100%;display:grid;place-items:center;color:var(--muted);text-align:center}.glbc-form-row{display:grid;gap:5px;min-width:0}.glbc-form-row label{color:var(--muted);font-size:12px}.glbc-input,.glbc-select,.glbc-textarea{width:100%;min-width:0;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:8px 10px;font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}.glbc-textarea{height:clamp(180px,36vh,320px);min-height:180px;resize:vertical}.glbc-editor-flags{display:flex;gap:8px 10px;color:var(--muted);font-size:12px;flex-wrap:wrap}.glbc-editor-flags span{min-width:0}.glbc-editor-actions{display:flex;gap:8px;justify-content:flex-end}.glbc-action{min-height:34px;padding:0 12px;border-radius:9px;background:var(--hover)}.glbc-action.primary{background:var(--accent);color:#fff}.glbc-status{flex:1}.glbc-status[data-kind=error]{color:#ff8d8d}
         @media(max-width:760px){.glbc-launcher{right:16px!important;bottom:18px!important;left:auto!important;top:auto!important;width:58px;height:58px;touch-action:manipulation}.glbc-panel{left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100vw!important;height:min(88vh,760px);height:min(88dvh,760px);max-height:calc(100vh - 8px);border-width:1px 0 0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom);transform:translateZ(0)}.glbc-body{grid-template-columns:1fr;grid-template-rows:46% 54%}.glbc-tree{border-right:0;border-bottom:1px solid var(--border);padding:10px}.glbc-tree-row{grid-template-columns:14px minmax(0,1fr) 84px}.glbc-tree-row.is-blue-node{--kind-indent:10px}.glbc-tree-row.is-green-node{--kind-indent:20px}.glbc-row-actions{width:84px;grid-template-columns:28px 46px;gap:7px}}
+        .glbc-root[data-compact=true] .glbc-launcher{display:none}
+        .glbc-root[data-compact=true] .glbc-panel{border-width:1px 0 0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom)}
+        .glbc-root[data-compact=true] .glbc-body{grid-template-columns:1fr;grid-template-rows:46% 54%}
+        .glbc-root[data-compact=true] .glbc-tree{border-right:0;border-bottom:1px solid var(--border);padding:10px}
     `;
 
     const style = hostDocument.createElement('style');
@@ -183,6 +188,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     let dragged = false;
     let openedAt = 0;
     let lastTouchToggle = 0;
+    let forceCompact = false;
     let wandRetryTimer;
     let wandRetryCount = 0;
 
@@ -582,6 +588,21 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     }
 
     function positionPanel() {
+        if (root.dataset.compact === 'true') {
+            const viewportLeft = viewport?.offsetLeft ?? 0;
+            const viewportTop = viewport?.offsetTop ?? 0;
+            const viewportWidth = viewport?.width ?? hostWindow.innerWidth;
+            const viewportHeight = viewport?.height ?? hostWindow.innerHeight;
+            const panelHeight = Math.min(760, Math.max(360, viewportHeight * 0.88));
+            panel.style.setProperty('left', `${viewportLeft}px`, 'important');
+            panel.style.setProperty('right', 'auto', 'important');
+            panel.style.setProperty('bottom', 'auto', 'important');
+            panel.style.setProperty('top', `${viewportTop + viewportHeight - panelHeight}px`, 'important');
+            panel.style.setProperty('width', `${viewportWidth}px`, 'important');
+            panel.style.setProperty('height', `${panelHeight}px`, 'important');
+            panel.style.setProperty('max-height', `${panelHeight}px`, 'important');
+            return;
+        }
         if (hostWindow.innerWidth <= 760) return;
         const rect = launcher.getBoundingClientRect();
         const width = Math.min(980, hostWindow.innerWidth - 24);
@@ -610,16 +631,31 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         panel.style.height = 'min(88dvh, 760px)';
     }
 
+    function syncCompactLayout() {
+        const viewportWidth = viewport?.width ?? hostWindow.innerWidth;
+        const compact = forceCompact || viewportWidth <= 760 || hostWindow.matchMedia('(max-width: 760px)').matches;
+        root.dataset.compact = String(compact);
+        if (!compact) {
+            ['left', 'right', 'bottom', 'top', 'width', 'height', 'max-height'].forEach(property => panel.style.removeProperty(property));
+            positionMobileLauncher();
+        }
+        if (!panel.hidden) positionPanel();
+    }
+
     function closePanel() {
         panel.hidden = true;
         launcher.setAttribute('aria-expanded', 'false');
+        forceCompact = false;
+        syncCompactLayout();
         positionMobileLauncher();
     }
 
-    async function openPanel() {
+    async function openPanel(fromWandMenu = false) {
+        forceCompact = fromWandMenu;
         panel.hidden = false;
         openedAt = Date.now();
         launcher.setAttribute('aria-expanded', 'true');
+        syncCompactLayout();
         positionMobileLauncher();
         positionMobilePanel();
         positionPanel();
@@ -642,8 +678,9 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         item.innerHTML = '<div class="fa-fw fa-solid fa-futbol extensionsMenuExtensionButton"></div><span>绿茵世界书管理器</span>';
         item.addEventListener('click', event => {
             event.preventDefault();
-            hostDocument.getElementById('extensionsMenuButton')?.click();
-            void openPanel();
+            const wandButton = hostDocument.getElementById('extensionsMenuButton');
+            if (hostWindow.getComputedStyle(extensionsMenu).display !== 'none') wandButton?.click();
+            void openPanel(true);
         }, eventOptions);
         container.append(item);
         extensionsMenu.append(container);
@@ -728,10 +765,14 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         if (event.key === 'Escape') closePanel();
     }, eventOptions);
     hostWindow.addEventListener('resize', () => {
+        syncCompactLayout();
         positionMobileLauncher();
         positionMobilePanel();
         if (!panel.hidden) positionPanel();
     }, eventOptions);
+    viewport?.addEventListener('resize', syncCompactLayout, eventOptions);
+    viewport?.addEventListener('scroll', syncCompactLayout, eventOptions);
+    syncCompactLayout();
     positionMobileLauncher();
     registerWandMenuEntry();
 
