@@ -126,9 +126,9 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
 
     const css = `
         .glbc-root,.glbc-root *{box-sizing:border-box}
-        .glbc-root{--bg:var(--SmartThemeBlurTintColor,#20242b);--text:var(--SmartThemeBodyColor,#f1f3f5);--surface:color-mix(in srgb,var(--bg) 91%,var(--text) 9%);--hover:color-mix(in srgb,var(--bg) 82%,var(--text) 18%);--border:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);--muted:color-mix(in srgb,var(--text) 64%,var(--bg) 36%);--accent:var(--SmartThemeQuoteColor,#79a7ff);position:fixed;inset:0;z-index:2147483000;pointer-events:none;font:14px/1.45 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:var(--text)}
+        .glbc-root{--bg:var(--SmartThemeBlurTintColor,#20242b);--text:var(--SmartThemeBodyColor,#f1f3f5);--surface:color-mix(in srgb,var(--bg) 91%,var(--text) 9%);--hover:color-mix(in srgb,var(--bg) 82%,var(--text) 18%);--border:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);--muted:color-mix(in srgb,var(--text) 64%,var(--bg) 36%);--accent:var(--SmartThemeQuoteColor,#79a7ff);position:fixed;inset:0;z-index:2147483600;pointer-events:none;font:14px/1.45 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:var(--text)}
         .glbc-launcher{position:fixed;right:24px;bottom:28px;width:54px;height:54px;display:grid;place-items:center;border:1px solid var(--border);border-radius:50%;background:var(--bg);color:var(--text);box-shadow:0 8px 26px rgb(0 0 0 / 28%);cursor:grab;pointer-events:auto;touch-action:none;z-index:2147483647}
-        .glbc-panel{position:fixed;width:min(980px,calc(100vw - 24px));height:min(760px,calc(100vh - 24px));display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;border:1px solid var(--border);border-radius:16px;background:var(--bg);box-shadow:0 18px 60px rgb(0 0 0 / 38%);pointer-events:auto;backdrop-filter:blur(18px)}
+        .glbc-panel{position:fixed;width:min(980px,calc(100vw - 24px));height:min(760px,calc(100vh - 24px));display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;border:1px solid var(--border);border-radius:16px;background:var(--bg);box-shadow:0 18px 60px rgb(0 0 0 / 38%);pointer-events:auto;backdrop-filter:blur(18px);z-index:2147483646}
         .glbc-panel[hidden]{display:none}
         .glbc-header,.glbc-footer{display:flex;align-items:center;gap:10px;padding:12px 14px}.glbc-header{border-bottom:1px solid var(--border)}.glbc-footer{min-height:42px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}.glbc-title{min-width:0;flex:1}.glbc-title strong,.glbc-title span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-title span{color:var(--muted);font-size:12px}
         .glbc-icon-button,.glbc-action,.glbc-switch,.glbc-tree-head,.glbc-edit-button,.glbc-group-add{border:0;color:inherit;font:inherit;cursor:pointer}.glbc-icon-button{width:38px;height:38px;border-radius:10px;background:transparent;font-size:20px}.glbc-icon-button:hover,.glbc-action:hover,.glbc-tree-row:hover,.glbc-edit-button:hover,.glbc-group-add:hover{background:var(--hover)}
@@ -141,7 +141,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         .glbc-switch{position:relative;width:46px;height:26px;flex:0 0 auto;border-radius:999px;background:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);transition:background 130ms ease}.glbc-switch::after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgb(0 0 0 / 28%);transition:transform 130ms ease}.glbc-switch[aria-checked=true]{background:var(--accent)}.glbc-switch[aria-checked=true]::after{transform:translateX(20px)}.glbc-switch[data-state=unknown]{background:#a56c32}.glbc-switch:disabled,.glbc-action:disabled{cursor:wait;opacity:.55}
         .glbc-edit-button{width:30px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center}
         .glbc-editor-empty{height:100%;display:grid;place-items:center;color:var(--muted);text-align:center}.glbc-form-row{display:grid;gap:5px;min-width:0}.glbc-form-row label{color:var(--muted);font-size:12px}.glbc-input,.glbc-select,.glbc-textarea{width:100%;min-width:0;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:8px 10px;font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}.glbc-textarea{height:clamp(180px,36vh,320px);min-height:180px;resize:vertical}.glbc-editor-flags{display:flex;gap:8px 10px;color:var(--muted);font-size:12px;flex-wrap:wrap}.glbc-editor-flags span{min-width:0}.glbc-editor-actions{display:flex;gap:8px;justify-content:flex-end}.glbc-action{min-height:34px;padding:0 12px;border-radius:9px;background:var(--hover)}.glbc-action.primary{background:var(--accent);color:#fff}.glbc-status{flex:1}.glbc-status[data-kind=error]{color:#ff8d8d}
-        @media(max-width:760px){.glbc-launcher{right:16px;bottom:18px;width:58px;height:58px}.glbc-panel{left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100%;height:min(88dvh,760px);border-width:1px 0 0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom)}.glbc-body{grid-template-columns:1fr;grid-template-rows:46% 54%}.glbc-tree{border-right:0;border-bottom:1px solid var(--border);padding:10px}.glbc-tree-row{grid-template-columns:14px minmax(0,1fr) 84px}.glbc-tree-row.is-blue-node{--kind-indent:10px}.glbc-tree-row.is-green-node{--kind-indent:20px}.glbc-row-actions{width:84px;grid-template-columns:28px 46px;gap:7px}}
+        @media(max-width:760px){.glbc-launcher{right:16px!important;bottom:18px!important;left:auto!important;top:auto!important;width:58px;height:58px;touch-action:manipulation}.glbc-panel{left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100vw!important;height:min(88vh,760px);height:min(88dvh,760px);max-height:calc(100vh - 8px);border-width:1px 0 0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom);transform:translateZ(0)}.glbc-body{grid-template-columns:1fr;grid-template-rows:46% 54%}.glbc-tree{border-right:0;border-bottom:1px solid var(--border);padding:10px}.glbc-tree-row{grid-template-columns:14px minmax(0,1fr) 84px}.glbc-tree-row.is-blue-node{--kind-indent:10px}.glbc-tree-row.is-green-node{--kind-indent:20px}.glbc-row-actions{width:84px;grid-template-columns:28px 46px;gap:7px}}
     `;
 
     const style = hostDocument.createElement('style');
@@ -181,6 +181,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     const status = root.querySelector('.glbc-status');
     let activeUid = '';
     let dragged = false;
+    let openedAt = 0;
     let lastTouchToggle = 0;
     let wandRetryTimer;
     let wandRetryCount = 0;
@@ -591,20 +592,36 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         panel.style.top = `${Math.max(12, Math.min(hostWindow.innerHeight - height - 12, rect.top))}px`;
     }
 
+    function positionMobileLauncher() {
+        if (hostWindow.innerWidth > 760) return;
+        launcher.style.left = 'auto';
+        launcher.style.top = 'auto';
+        launcher.style.right = '16px';
+        launcher.style.bottom = `calc(18px + env(safe-area-inset-bottom, 0px))`;
+    }
+
+    function positionMobilePanel() {
+        if (hostWindow.innerWidth > 760) return;
+        panel.style.left = '0';
+        panel.style.right = '0';
+        panel.style.top = 'auto';
+        panel.style.bottom = '0';
+        panel.style.width = '100vw';
+        panel.style.height = 'min(88dvh, 760px)';
+    }
+
     function closePanel() {
         panel.hidden = true;
         launcher.setAttribute('aria-expanded', 'false');
+        positionMobileLauncher();
     }
 
     async function openPanel() {
         panel.hidden = false;
+        openedAt = Date.now();
         launcher.setAttribute('aria-expanded', 'true');
-        if (hostWindow.innerWidth <= 760) {
-            panel.style.left = '';
-            panel.style.top = '';
-            panel.style.right = '';
-            panel.style.bottom = '';
-        }
+        positionMobileLauncher();
+        positionMobilePanel();
         positionPanel();
         buildTree();
         await refreshTree(true);
@@ -704,14 +721,18 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     }, eventOptions);
 
     hostDocument.addEventListener('pointerdown', event => {
+        if (Date.now() - openedAt < 350) return;
         if (!panel.hidden && !panel.contains(event.target) && !launcher.contains(event.target)) closePanel();
     }, eventOptions);
     hostDocument.addEventListener('keydown', event => {
         if (event.key === 'Escape') closePanel();
     }, eventOptions);
     hostWindow.addEventListener('resize', () => {
+        positionMobileLauncher();
+        positionMobilePanel();
         if (!panel.hidden) positionPanel();
     }, eventOptions);
+    positionMobileLauncher();
     registerWandMenuEntry();
 
     hostWindow[cleanupKey] = () => {
