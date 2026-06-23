@@ -34,6 +34,17 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
 
     const BOOK_SECTIONS = [
         {
+            id: 'overview', label: '世界总览', icon: '览',
+            color: '#38bdf8', accent: 'rgba(56,189,248,',
+            overview: null,
+            chapters: [
+                { uid: '16', label: '时间线总览' },
+                { uid: '17', label: '豪门简介总览' },
+                { uid: '18', label: '流行战术简介' },
+                { uid: '19', label: '球员位置简介' }
+            ]
+        },
+        {
             id: 'timeline', label: '年份大事记', icon: '年',
             color: '#22c55e', accent: 'rgba(34,197,94,',
             overview: null,
