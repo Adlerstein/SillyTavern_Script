@@ -181,6 +181,7 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     const status = root.querySelector('.glbc-status');
     let activeUid = '';
     let dragged = false;
+    let lastTouchToggle = 0;
     let wandRetryTimer;
     let wandRetryCount = 0;
 
@@ -598,6 +599,12 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     async function openPanel() {
         panel.hidden = false;
         launcher.setAttribute('aria-expanded', 'true');
+        if (hostWindow.innerWidth <= 760) {
+            panel.style.left = '';
+            panel.style.top = '';
+            panel.style.right = '';
+            panel.style.bottom = '';
+        }
         positionPanel();
         buildTree();
         await refreshTree(true);
@@ -649,6 +656,9 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
     search.addEventListener('input', applySearch, eventOptions);
 
     launcher.addEventListener('pointerdown', event => {
+        if (event.pointerType === 'touch' || hostWindow.innerWidth <= 760) {
+            return;
+        }
         const rect = launcher.getBoundingClientRect();
         const origin = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
         dragged = false;
@@ -672,11 +682,23 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         launcher.addEventListener('pointercancel', up);
     }, eventOptions);
 
-    launcher.addEventListener('click', () => {
+    launcher.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (Date.now() - lastTouchToggle < 500) return;
         if (dragged) {
             dragged = false;
             return;
         }
+        if (panel.hidden) void openPanel();
+        else closePanel();
+    }, eventOptions);
+
+    launcher.addEventListener('touchend', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        lastTouchToggle = Date.now();
+        dragged = false;
         if (panel.hidden) void openPanel();
         else closePanel();
     }, eventOptions);
