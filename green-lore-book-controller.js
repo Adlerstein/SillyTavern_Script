@@ -1,307 +1,180 @@
 import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/SillyTavern_Script@1bbded69af6fa712c5d376821c549ccf7d1d776d/lore-book-controller-store.js?v=20260614-4';
 
-// Load from a card script with: import '/scripts/custom/lore-book-controller.js?v=20260614-4';
-(function initLoreBookController() {
+(function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
     const hostDocument = hostWindow.document;
-    const scriptId = typeof globalThis.getScriptId === 'function' ? globalThis.getScriptId() : 'lore-book-controller-local';
-    const cleanupKey = '__loreBookControllerCleanup';
+    const scriptId = typeof globalThis.getScriptId === 'function' ? globalThis.getScriptId() : 'green-lore-book-controller-local';
+    const cleanupKey = '__greenLoreBookControllerCleanup';
+    const BOOK_FILE = '绿茵好莱坞';
 
     hostWindow[cleanupKey]?.();
-    hostDocument.querySelectorAll(`[data-lbc-owner="${scriptId}"]`).forEach(node => node.remove());
+    hostDocument.querySelectorAll(`[data-glbc-owner="${scriptId}"]`).forEach(node => node.remove());
 
     const events = new hostWindow.AbortController();
     const eventOptions = { signal: events.signal };
-    const BOOK_FILE = '绿茵好莱坞';
     const getContext = () => hostWindow.SillyTavern?.getContext?.() ?? globalThis.SillyTavern?.getContext?.();
-    const store = createLoreBookStore({
-        bookName: BOOK_FILE,
-        loadWorldInfo: name => {
-            const context = getContext();
-            if (typeof context?.loadWorldInfo !== 'function') {
-                throw new Error('SillyTavern.getContext().loadWorldInfo is unavailable');
-            }
-            return context.loadWorldInfo(name);
-        },
-        saveWorldInfo: (...args) => {
-            const context = getContext();
-            if (typeof context?.saveWorldInfo !== 'function') {
-                throw new Error('SillyTavern.getContext().saveWorldInfo is unavailable');
-            }
-            return context.saveWorldInfo(...args);
-        },
-    });
-
-    const BOOK_SECTIONS = [
-        {
-            id: 'overview', label: '世界总览', icon: '览',
-            color: '#38bdf8', accent: 'rgba(56,189,248,',
-            overview: null,
-            chapters: [
-                { uid: '16', label: '时间线总览' },
-                { uid: '17', label: '豪门简介总览' },
-                { uid: '18', label: '流行战术简介' },
-                { uid: '19', label: '球员位置简介' }
-            ]
-        },
-        {
-            id: 'timeline', label: '年份大事记', icon: '年',
-            color: '#22c55e', accent: 'rgba(34,197,94,',
-            overview: null,
-            chapters: [
-                { uid: '13', label: '2004年足球大事记' },
-                { uid: '14', label: '2005年足球大事记' },
-                { uid: '15', label: '2006年足球大事记' }
-            ]
-        }
-    ];
-
-    const DLC_SECTIONS = [];
-
-    const CHARACTER_SECTIONS = [];
-
-    const pages = {
-        story: { label: '时间线', sections: BOOK_SECTIONS },
+    const getLoadWorldInfo = () => {
+        const context = getContext();
+        if (typeof context?.loadWorldInfo !== 'function') throw new Error('loadWorldInfo is unavailable');
+        return context.loadWorldInfo.bind(context);
+    };
+    const getSaveWorldInfo = () => {
+        const context = getContext();
+        if (typeof context?.saveWorldInfo !== 'function') throw new Error('saveWorldInfo is unavailable');
+        return context.saveWorldInfo.bind(context);
     };
 
+    const store = createLoreBookStore({
+        bookName: BOOK_FILE,
+        loadWorldInfo: name => getLoadWorldInfo()(name),
+        saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
+    });
+
+    const TREE = [
+        {
+            id: 'world', label: '绿茵世界树', icon: '树', color: '#22c55e', start: [20, '世界树开始'], end: [21, '世界树结束'],
+            children: [
+                {
+                    id: 'timeline', label: '时间线', icon: '年', color: '#22c55e', start: [90, '时间线开始'], end: [99, '时间线结束'],
+                    overview: [35, '时间线总览'],
+                    children: [[100, '1998年'], [101, '1999年'], [102, '2000年'], [103, '2001年'], [104, '2002年'], [105, '2003年'], [106, '2004年'], [107, '2005年'], [108, '2006年']],
+                },
+                {
+                    id: 'league', label: '联赛', icon: '赛', color: '#f59e0b', start: [190, '联赛开始'], end: [199, '联赛结束'],
+                    overview: [30, '联赛总览'],
+                    children: [[200, '英超'], [201, '德甲'], [202, '西甲'], [203, '意甲'], [204, '法甲'], [205, '欧冠'], [206, '国家队赛事']],
+                },
+                {
+                    id: 'club', label: '俱乐部信息', icon: '俱', color: '#ef4444', start: [290, '俱乐部开始'], end: [299, '俱乐部结束'],
+                    overview: [31, '重要俱乐部简表'],
+                    children: [[300, '拜仁慕尼黑'], [301, '曼联'], [302, '皇家马德里'], [303, '巴塞罗那'], [304, 'AC米兰'], [305, '尤文图斯'], [306, '阿森纳'], [307, '切尔西']],
+                },
+                {
+                    id: 'tactic', label: '战术', icon: '术', color: '#a855f7', start: [390, '战术开始'], end: [399, '战术结束'],
+                    overview: [32, '战术总览'],
+                    children: [[400, '传统442'], [401, '三中卫体系'], [402, '圣诞树/4312'], [403, '433/4231'], [404, '防守反击'], [405, '传控与高压']],
+                },
+                {
+                    id: 'position', label: '球场位置', icon: '位', color: '#14b8a6', start: [490, '球场位置开始'], end: [499, '球场位置结束'],
+                    overview: [33, '球场位置总览'],
+                    extra: [[34, '青训与职业路径总览']],
+                    children: [[500, '门将'], [501, '中后卫'], [502, '边后卫/翼卫'], [503, '后腰/中前卫'], [504, '前腰/边锋'], [505, '中锋']],
+                },
+            ],
+        },
+    ];
+
+    const uidKey = value => String(value ?? '').trim();
+    const clone = value => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    const splitKeys = value => String(value ?? '').split(/[,，\n]/).map(item => item.trim()).filter(Boolean);
+    const joinKeys = keys => Array.isArray(keys) ? keys.join('，') : '';
+    const STATIC_UIDS = new Set(flattenTree().map(uidKey));
+    const MODULES = {
+        timeline: { label: '时间线', prefix: '[timeline]', order: 52 },
+        league: { label: '联赛', prefix: '[league]', order: 62 },
+        club: { label: '俱乐部信息', prefix: '[club]', order: 72 },
+        tactic: { label: '战术', prefix: '[tactic]', order: 82 },
+        position: { label: '球场位置', prefix: '[position]', order: 92 },
+        overview: { label: '总览/结构', prefix: '[overview]', order: 94 },
+    };
+
+    function findEntry(book, uid) {
+        const key = uidKey(uid);
+        const entries = book?.entries;
+        if (!key || !entries) return null;
+        if (!Array.isArray(entries) && entries[key]) return entries[key];
+        return Object.values(entries).find(entry => uidKey(entry?.uid ?? entry?.id) === key) ?? null;
+    }
+
+    function findLegacyEntry(book, uid) {
+        const key = uidKey(uid);
+        const entries = book?.originalData?.entries;
+        if (!key || !Array.isArray(entries)) return null;
+        return entries.find(entry => uidKey(entry?.uid ?? entry?.id) === key) ?? null;
+    }
+
+    function entryKeys(entry) {
+        if (!entry) return [];
+        if (Array.isArray(entry.key)) return entry.key;
+        if (Array.isArray(entry.keys)) return entry.keys;
+        return [];
+    }
+
+    function nextUid(book) {
+        const entries = Object.values(book?.entries ?? {});
+        const ids = entries.map(entry => Number(entry?.uid ?? entry?.id)).filter(Number.isFinite);
+        return String(Math.max(0, ...ids) + 1);
+    }
+
+    function moduleFromComment(comment) {
+        const text = String(comment ?? '');
+        if (text.startsWith('[timeline]')) return 'timeline';
+        if (text.startsWith('[league]')) return 'league';
+        if (text.startsWith('[club]')) return 'club';
+        if (text.startsWith('[tactic]')) return 'tactic';
+        if (text.startsWith('[position]')) return 'position';
+        if (text.startsWith('[overview]') || text.startsWith('[tree]')) return 'overview';
+        return 'overview';
+    }
+
     const css = `
-        .lbc-root, .lbc-root * { box-sizing: border-box; }
-        .lbc-root {
-            --lbc-bg: var(--SmartThemeBlurTintColor, #20242b);
-            --lbc-text: var(--SmartThemeBodyColor, #f1f3f5);
-            --lbc-surface: color-mix(in srgb, var(--lbc-bg) 92%, var(--lbc-text) 8%);
-            --lbc-surface-hover: color-mix(in srgb, var(--lbc-bg) 84%, var(--lbc-text) 16%);
-            --lbc-border: color-mix(in srgb, var(--lbc-bg) 72%, var(--lbc-text) 28%);
-            --lbc-muted: color-mix(in srgb, var(--lbc-text) 65%, var(--lbc-bg) 35%);
-            --lbc-switch-off: color-mix(in srgb, var(--lbc-bg) 70%, var(--lbc-text) 30%);
-            --lbc-accent: var(--SmartThemeQuoteColor, #79a7ff);
-            position: fixed;
-            inset: 0;
-            z-index: 2147483000;
-            pointer-events: none;
-            font: 14px/1.45 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-            color: var(--lbc-text);
-        }
-        .lbc-launcher {
-            position: fixed;
-            right: 24px;
-            bottom: 28px;
-            width: 54px;
-            height: 54px;
-            display: grid;
-            place-items: center;
-            border: 1px solid var(--lbc-border);
-            border-radius: 50%;
-            background: var(--lbc-bg);
-            color: var(--lbc-text);
-            box-shadow: 0 8px 26px rgb(0 0 0 / 28%);
-            cursor: grab;
-            pointer-events: auto;
-            touch-action: none;
-            backdrop-filter: blur(14px);
-            z-index: 2147483647;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        .lbc-launcher:active { cursor: grabbing; }
-        .lbc-launcher svg { width: 24px; height: 24px; pointer-events: none; }
-        .lbc-panel {
-            position: fixed;
-            width: min(440px, calc(100vw - 24px));
-            max-height: min(680px, calc(100vh - 24px));
-            display: grid;
-            grid-template-rows: auto auto minmax(0, 1fr) auto;
-            overflow: hidden;
-            border: 1px solid var(--lbc-border);
-            border-radius: 16px;
-            background: var(--lbc-bg);
-            box-shadow: 0 18px 60px rgb(0 0 0 / 38%);
-            pointer-events: auto;
-            backdrop-filter: blur(18px);
-        }
-        .lbc-panel[hidden] { display: none; }
-        .lbc-header, .lbc-footer {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 14px;
-        }
-        .lbc-header { border-bottom: 1px solid var(--lbc-border); }
-        .lbc-title { min-width: 0; flex: 1; }
-        .lbc-title strong, .lbc-title span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .lbc-title span, .lbc-footer { color: var(--lbc-muted); font-size: 12px; }
-        .lbc-icon-button, .lbc-tab, .lbc-action, .lbc-switch, .lbc-group-head {
-            border: 0;
-            color: inherit;
-            font: inherit;
-            cursor: pointer;
-        }
-        .lbc-icon-button {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            background: transparent;
-            font-size: 20px;
-        }
-        .lbc-icon-button:hover, .lbc-tab:hover, .lbc-action:hover, .lbc-row:hover { background: var(--lbc-surface-hover); }
-        .lbc-tabs {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-            padding: 8px;
-            border-bottom: 1px solid var(--lbc-border);
-        }
-        .lbc-tab {
-            min-height: 40px;
-            border-radius: 10px;
-            background: transparent;
-            color: var(--lbc-muted);
-        }
-        .lbc-tab[aria-selected="true"] { background: var(--lbc-surface); color: var(--lbc-text); font-weight: 650; }
-        .lbc-pages { min-height: 220px; overflow: auto; padding: 8px; overscroll-behavior: contain; }
-        .lbc-page[hidden] { display: none; }
-        .lbc-group { margin-bottom: 8px; overflow: hidden; border: 1px solid var(--lbc-border); border-radius: 12px; background: var(--lbc-surface); }
-        .lbc-group-head {
-            width: 100%;
-            min-height: 52px;
-            display: grid;
-            grid-template-columns: 34px minmax(0, 1fr) auto auto;
-            align-items: center;
-            gap: 9px;
-            padding: 8px 10px;
-            background: transparent;
-            text-align: left;
-        }
-        .lbc-group-icon {
-            width: 30px;
-            height: 30px;
-            display: grid;
-            place-items: center;
-            border-radius: 9px;
-            background: color-mix(in srgb, var(--group-color) 18%, transparent);
-            color: var(--group-color);
-            font-weight: 700;
-        }
-        .lbc-count { color: var(--lbc-muted); font-size: 12px; }
-        .lbc-chevron { transition: transform 160ms ease; }
-        .lbc-group[data-open="true"] .lbc-chevron { transform: rotate(90deg); }
-        .lbc-group-body { display: none; border-top: 1px solid var(--lbc-border); }
-        .lbc-group[data-open="true"] .lbc-group-body { display: block; }
-        .lbc-actions { display: flex; gap: 7px; padding: 8px; border-bottom: 1px solid var(--lbc-border); }
-        .lbc-action {
-            min-height: 34px;
-            padding: 0 12px;
-            border-radius: 9px;
-            background: var(--lbc-surface-hover);
-        }
-        .lbc-row {
-            min-height: 46px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 7px 10px 7px 13px;
-            border-bottom: 1px solid var(--lbc-border);
-        }
-        .lbc-row:last-child { border-bottom: 0; }
-        .lbc-row-label { min-width: 0; flex: 1; overflow-wrap: anywhere; }
-        .lbc-row-overview .lbc-row-label { color: var(--group-color); font-weight: 650; }
-        .lbc-switch {
-            position: relative;
-            width: 46px;
-            height: 28px;
-            flex: 0 0 auto;
-            border-radius: 999px;
-            background: var(--lbc-switch-off);
-            transition: background 130ms ease;
-        }
-        .lbc-switch::after {
-            content: "";
-            position: absolute;
-            top: 4px;
-            left: 4px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #fff;
-            box-shadow: 0 1px 4px rgb(0 0 0 / 28%);
-            transition: transform 130ms ease;
-        }
-        .lbc-switch[aria-checked="true"] { background: var(--lbc-accent); }
-        .lbc-switch[aria-checked="true"]::after { transform: translateX(18px); }
-        .lbc-switch[data-state="unknown"] { background: #a56c32; }
-        .lbc-switch:disabled, .lbc-action:disabled { cursor: wait; opacity: .55; }
-        .lbc-footer { min-height: 42px; border-top: 1px solid var(--lbc-border); }
-        .lbc-status { flex: 1; }
-        .lbc-status[data-kind="error"] { color: #ff8d8d; }
-        @media (max-width: 640px) {
-            .lbc-launcher { right: 16px; bottom: 18px; width: 58px; height: 58px; }
-            .lbc-panel {
-                left: 0 !important;
-                right: 0 !important;
-                bottom: 0 !important;
-                top: auto !important;
-                width: 100%;
-                max-height: min(82dvh, 720px);
-                border-width: 1px 0 0;
-                border-radius: 18px 18px 0 0;
-                padding-bottom: env(safe-area-inset-bottom);
-            }
-            .lbc-header { padding: 14px 16px 10px; }
-            .lbc-pages { padding: 8px 8px 16px; }
-            .lbc-group-head, .lbc-row { min-height: 54px; }
-            .lbc-action { min-height: 42px; }
-        }
-        .lbc-root[data-compact="true"] .lbc-launcher { display: none; }
-        .lbc-root[data-compact="true"] .lbc-panel {
-            border-width: 1px 0 0;
-            border-radius: 18px 18px 0 0;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-        .lbc-root[data-compact="true"] .lbc-header { padding: 14px 16px 10px; }
-        .lbc-root[data-compact="true"] .lbc-pages { padding: 8px 8px 16px; }
-        .lbc-root[data-compact="true"] .lbc-group-head,
-        .lbc-root[data-compact="true"] .lbc-row { min-height: 54px; }
-        .lbc-root[data-compact="true"] .lbc-action { min-height: 42px; }
-        @media (prefers-reduced-motion: reduce) {
-            .lbc-root * { transition: none !important; }
-        }
+        .glbc-root,.glbc-root *{box-sizing:border-box}
+        .glbc-root{--bg:var(--SmartThemeBlurTintColor,#20242b);--text:var(--SmartThemeBodyColor,#f1f3f5);--surface:color-mix(in srgb,var(--bg) 91%,var(--text) 9%);--hover:color-mix(in srgb,var(--bg) 82%,var(--text) 18%);--border:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);--muted:color-mix(in srgb,var(--text) 64%,var(--bg) 36%);--accent:var(--SmartThemeQuoteColor,#79a7ff);position:fixed;inset:0;z-index:2147483000;pointer-events:none;font:14px/1.45 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:var(--text)}
+        .glbc-launcher{position:fixed;right:24px;bottom:28px;width:54px;height:54px;display:grid;place-items:center;border:1px solid var(--border);border-radius:50%;background:var(--bg);color:var(--text);box-shadow:0 8px 26px rgb(0 0 0 / 28%);cursor:grab;pointer-events:auto;touch-action:none;z-index:2147483647}
+        .glbc-panel{position:fixed;width:min(980px,calc(100vw - 24px));height:min(760px,calc(100vh - 24px));display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;border:1px solid var(--border);border-radius:16px;background:var(--bg);box-shadow:0 18px 60px rgb(0 0 0 / 38%);pointer-events:auto;backdrop-filter:blur(18px)}
+        .glbc-panel[hidden]{display:none}
+        .glbc-header,.glbc-footer{display:flex;align-items:center;gap:10px;padding:12px 14px}.glbc-header{border-bottom:1px solid var(--border)}.glbc-footer{min-height:42px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}.glbc-title{min-width:0;flex:1}.glbc-title strong,.glbc-title span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-title span{color:var(--muted);font-size:12px}
+        .glbc-icon-button,.glbc-action,.glbc-switch,.glbc-tree-head,.glbc-edit-button{border:0;color:inherit;font:inherit;cursor:pointer}.glbc-icon-button{width:38px;height:38px;border-radius:10px;background:transparent;font-size:20px}.glbc-icon-button:hover,.glbc-action:hover,.glbc-tree-row:hover,.glbc-edit-button:hover{background:var(--hover)}
+        .glbc-body{min-height:0;display:grid;grid-template-columns:minmax(390px,44%) minmax(0,1fr)}
+        .glbc-tree{min-height:0;overflow:auto;padding:12px 10px 12px 12px;border-right:1px solid var(--border)}.glbc-editor{min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;padding:12px;gap:10px}
+        .glbc-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:10px}.glbc-search{width:100%;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:0 10px}
+        .glbc-tree-group{margin:0 0 8px}.glbc-tree-head{width:100%;min-height:42px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--surface);text-align:left}.glbc-tree-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--group-color) 18%,transparent);color:var(--group-color);font-weight:700}.glbc-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-tree-group[data-open=false]>.glbc-tree-children{display:none}.glbc-tree-group[data-open=true]>.glbc-tree-head .glbc-chevron{transform:rotate(90deg)}.glbc-chevron{transition:transform 160ms ease;color:var(--muted)}
+        .glbc-tree-children{margin-left:10px;padding-left:11px;border-left:1px solid var(--border)}.glbc-tree-row{--level-indent:0px;--kind-indent:0px;min-height:40px;display:grid;grid-template-columns:14px minmax(0,1fr) 86px;align-items:center;column-gap:9px;margin-left:var(--level-indent);padding:5px 6px 5px calc(6px + var(--kind-indent));border-radius:9px}.glbc-tree-row[hidden]{display:none}.glbc-tree-row.is-active{background:color-mix(in srgb,var(--accent) 24%,transparent)}.glbc-node-dot{width:9px;height:9px;border-radius:50%;background:var(--muted);justify-self:center}.glbc-node-dot.is-blue{background:#60a5fa}.glbc-node-dot.is-green{background:#22c55e}.glbc-node-dot.is-tag{background:#f59e0b}.glbc-row-title{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.32;word-break:break-word}.glbc-node-meta{color:var(--muted);font-size:11px;white-space:nowrap}.glbc-row-actions{width:86px;display:grid;grid-template-columns:30px 48px;align-items:center;justify-content:end;gap:8px}
+        .glbc-tree-row.is-tag-node{--kind-indent:0px}.glbc-tree-row.is-blue-node{--kind-indent:14px}.glbc-tree-row.is-green-node{--kind-indent:28px}
+        .glbc-switch{position:relative;width:46px;height:26px;flex:0 0 auto;border-radius:999px;background:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);transition:background 130ms ease}.glbc-switch::after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgb(0 0 0 / 28%);transition:transform 130ms ease}.glbc-switch[aria-checked=true]{background:var(--accent)}.glbc-switch[aria-checked=true]::after{transform:translateX(20px)}.glbc-switch[data-state=unknown]{background:#a56c32}.glbc-switch:disabled,.glbc-action:disabled{cursor:wait;opacity:.55}
+        .glbc-edit-button{width:30px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center}
+        .glbc-editor-empty{height:100%;display:grid;place-items:center;color:var(--muted);text-align:center}.glbc-form-row{display:grid;gap:5px}.glbc-form-row label{color:var(--muted);font-size:12px}.glbc-input,.glbc-select,.glbc-textarea{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:8px 10px;font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}.glbc-textarea{height:100%;min-height:260px;resize:none}.glbc-editor-flags{display:flex;gap:10px;color:var(--muted);font-size:12px;flex-wrap:wrap}.glbc-editor-actions{display:flex;gap:8px;justify-content:flex-end}.glbc-action{min-height:34px;padding:0 12px;border-radius:9px;background:var(--hover)}.glbc-action.primary{background:var(--accent);color:#fff}.glbc-status{flex:1}.glbc-status[data-kind=error]{color:#ff8d8d}
+        @media(max-width:760px){.glbc-launcher{right:16px;bottom:18px;width:58px;height:58px}.glbc-panel{left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100%;height:min(88dvh,760px);border-width:1px 0 0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom)}.glbc-body{grid-template-columns:1fr;grid-template-rows:46% 54%}.glbc-tree{border-right:0;border-bottom:1px solid var(--border);padding:10px}.glbc-tree-row{grid-template-columns:14px minmax(0,1fr) 84px}.glbc-tree-row.is-blue-node{--kind-indent:10px}.glbc-tree-row.is-green-node{--kind-indent:20px}.glbc-row-actions{width:84px;grid-template-columns:28px 46px;gap:7px}}
     `;
 
     const style = hostDocument.createElement('style');
-    style.dataset.lbcOwner = scriptId;
+    style.dataset.glbcOwner = scriptId;
     style.textContent = css;
     hostDocument.head.append(style);
 
     const root = hostDocument.createElement('div');
-    root.className = 'lbc-root';
-    root.dataset.lbcOwner = scriptId;
+    root.className = 'glbc-root';
+    root.dataset.glbcOwner = scriptId;
     root.innerHTML = `
-        <button class="lbc-launcher" type="button" aria-label="打开绿茵世界书管理器" aria-expanded="false">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 3.5A2.5 2.5 0 0 1 7.5 1H20v17H7.5A2.5 2.5 0 0 0 5 20.5v-17Zm2.5-.5A.5.5 0 0 0 7 3.5v13.55c.16-.03.33-.05.5-.05H18V3H7.5ZM4 4H2v16.5A2.5 2.5 0 0 0 4.5 23H20v-2H4.5a.5.5 0 0 1-.5-.5V4Z"/></svg>
-        </button>
-        <section class="lbc-panel" aria-label="绿茵世界书管理器" hidden>
-            <header class="lbc-header">
-                <div class="lbc-title"><strong>绿茵世界书管理器</strong><span>${BOOK_FILE}</span></div>
-                <button class="lbc-icon-button" type="button" data-action="refresh" aria-label="刷新">↻</button>
-                <button class="lbc-icon-button" type="button" data-action="close" aria-label="关闭">×</button>
+        <button class="glbc-launcher" type="button" aria-label="打开绿茵世界书管理器" aria-expanded="false">⚽</button>
+        <section class="glbc-panel" aria-label="绿茵世界书管理器" hidden>
+            <header class="glbc-header">
+                <div class="glbc-title"><strong>绿茵世界书管理器</strong><span>${BOOK_FILE} · 树形编辑版</span></div>
+                <button class="glbc-icon-button" type="button" data-action="refresh" aria-label="刷新">↻</button>
+                <button class="glbc-icon-button" type="button" data-action="close" aria-label="关闭">×</button>
             </header>
-            <nav class="lbc-tabs" aria-label="绿茵资料分类"></nav>
-            <main class="lbc-pages"></main>
-            <footer class="lbc-footer"><span class="lbc-status">准备就绪</span><span>快速切换会自动合并保存</span></footer>
-        </section>
-    `;
+            <main class="glbc-body">
+                <aside class="glbc-tree">
+                    <div class="glbc-toolbar"><input class="glbc-search" type="search" placeholder="搜索节点、编号或内容片段"><button class="glbc-action" type="button" data-action="new-entry">新建节点</button></div>
+                    <div class="glbc-tree-host"></div>
+                </aside>
+                <section class="glbc-editor">
+                    <div class="glbc-editor-empty">选择一个世界树节点后，可以编辑标题、关键词和正文。</div>
+                </section>
+            </main>
+            <footer class="glbc-footer"><span class="glbc-status">准备就绪</span><span>树枝开关与编辑保存都会写回世界书</span></footer>
+        </section>`;
     hostDocument.body.append(root);
 
-    const launcher = root.querySelector('.lbc-launcher');
-    const panel = root.querySelector('.lbc-panel');
-    const tabs = root.querySelector('.lbc-tabs');
-    const pageHost = root.querySelector('.lbc-pages');
-    const status = root.querySelector('.lbc-status');
-    const viewport = hostWindow.visualViewport;
-    const builtPages = new Map();
-    let activePage = 'story';
+    const launcher = root.querySelector('.glbc-launcher');
+    const panel = root.querySelector('.glbc-panel');
+    const treeHost = root.querySelector('.glbc-tree-host');
+    const editor = root.querySelector('.glbc-editor');
+    const search = root.querySelector('.glbc-search');
+    const status = root.querySelector('.glbc-status');
+    let activeUid = '';
     let dragged = false;
-    let forceCompact = false;
     let wandRetryTimer;
     let wandRetryCount = 0;
 
@@ -317,99 +190,141 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         status.dataset.kind = kind;
     }
 
+    function flattenTree(nodes = TREE, result = []) {
+        for (const node of nodes) {
+            if (node.start) result.push(node.start[0]);
+            if (node.overview) result.push(node.overview[0]);
+            if (node.extra) node.extra.forEach(item => result.push(item[0]));
+            if (node.children?.length) {
+                if (Array.isArray(node.children[0])) node.children.forEach(item => result.push(item[0]));
+                else flattenTree(node.children, result);
+            }
+            if (node.end) result.push(node.end[0]);
+        }
+        return result;
+    }
+
+    function nodeKind(entry) {
+        if (!entry) return 'tag';
+        if (entry.constant && !entry.selective) {
+            const content = String(entry.content ?? '');
+            return /^<\/?[^>]+>$/.test(content.trim()) ? 'tag' : 'blue';
+        }
+        if (!entry.constant && entry.selective) return 'green';
+        return 'blue';
+    }
+
     function makeSwitch(uid) {
-        const button = element('button', 'lbc-switch');
+        const button = element('button', 'glbc-switch');
         button.type = 'button';
         button.dataset.action = 'toggle';
-        button.dataset.uid = uid;
+        button.dataset.uid = String(uid);
         button.dataset.state = 'loading';
         button.setAttribute('role', 'switch');
         button.setAttribute('aria-checked', 'false');
-        button.setAttribute('aria-label', '切换条目');
         button.disabled = true;
         return button;
     }
 
-    function makeRow(item, overview = false) {
-        const row = element('div', `lbc-row${overview ? ' lbc-row-overview' : ''}`);
-        const label = element('span', 'lbc-row-label', item.label);
-        row.append(label, makeSwitch(item.uid));
+    function makeEntryRow(uid, fallbackLabel, level = 0) {
+        const row = element('div', 'glbc-tree-row');
+        row.dataset.uid = String(uid);
+        row.dataset.label = fallbackLabel;
+        row.style.setProperty('--level-indent', `${level * 2}px`);
+        row.innerHTML = `<span class="glbc-node-dot"></span><span class="glbc-row-title"></span><span class="glbc-row-actions"><button class="glbc-edit-button" type="button" data-action="edit" data-uid="${uid}" title="编辑">✎</button></span>`;
+        row.querySelector('.glbc-row-actions').append(makeSwitch(uid));
+        row.querySelector('.glbc-row-title').textContent = fallbackLabel;
         return row;
     }
 
-    function makeGroup(section) {
-        const group = element('section', 'lbc-group');
-        group.dataset.sectionId = section.id;
-        group.dataset.open = 'false';
-        group.style.setProperty('--group-color', section.color);
-
-        const head = element('button', 'lbc-group-head');
+    function makeGroup(node, level = 0) {
+        const group = element('section', 'glbc-tree-group');
+        group.dataset.groupId = node.id;
+        group.dataset.open = level < 2 ? 'true' : 'false';
+        group.style.setProperty('--group-color', node.color);
+        const head = element('button', 'glbc-tree-head');
         head.type = 'button';
         head.dataset.action = 'group';
-        head.innerHTML = `<span class="lbc-group-icon"></span><span class="lbc-group-name"></span><span class="lbc-count"></span><span class="lbc-chevron">›</span>`;
-        head.querySelector('.lbc-group-icon').textContent = section.icon;
-        head.querySelector('.lbc-group-name').textContent = section.label;
-        head.querySelector('.lbc-count').textContent = `${section.chapters.length} 项`;
-
-        const body = element('div', 'lbc-group-body');
-        const actions = element('div', 'lbc-actions');
-        const enable = element('button', 'lbc-action', '全部开启');
-        enable.type = 'button';
-        enable.dataset.action = 'batch';
-        enable.dataset.enabled = 'true';
-        const disable = element('button', 'lbc-action', '全部关闭');
-        disable.type = 'button';
-        disable.dataset.action = 'batch';
-        disable.dataset.enabled = 'false';
-        actions.append(enable, disable);
-        body.append(actions);
-        if (section.overview) body.append(makeRow(section.overview, true));
-        section.chapters.forEach(chapter => body.append(makeRow(chapter)));
+        head.innerHTML = `<span class="glbc-tree-icon"></span><span class="glbc-tree-name"></span><span class="glbc-chevron">›</span>`;
+        head.querySelector('.glbc-tree-icon').textContent = node.icon;
+        head.querySelector('.glbc-tree-name').textContent = node.label;
+        const body = element('div', 'glbc-tree-children');
+        if (node.start) body.append(makeEntryRow(node.start[0], node.start[1], level + 1));
+        if (node.overview) body.append(makeEntryRow(node.overview[0], node.overview[1], level + 1));
+        if (node.extra) node.extra.forEach(item => body.append(makeEntryRow(item[0], item[1], level + 1)));
+        if (node.children?.length) {
+            if (Array.isArray(node.children[0])) node.children.forEach(item => body.append(makeEntryRow(item[0], item[1], level + 1)));
+            else node.children.forEach(child => body.append(makeGroup(child, level + 1)));
+        }
+        if (node.end) body.append(makeEntryRow(node.end[0], node.end[1], level + 1));
         group.append(head, body);
         return group;
     }
 
-    function getPage(key) {
-        if (!builtPages.has(key)) {
-            const page = element('div', 'lbc-page');
-            page.dataset.page = key;
-            pages[key].sections.forEach(section => page.append(makeGroup(section)));
-            builtPages.set(key, page);
+    function buildTree() {
+        treeHost.replaceChildren(...TREE.map(node => makeGroup(node, 0)));
+    }
+
+    function groupBodyByModule(moduleId) {
+        if (moduleId === 'overview') return treeHost.querySelector('[data-group-id="world"] > .glbc-tree-children');
+        return treeHost.querySelector(`[data-group-id="${moduleId}"] > .glbc-tree-children`);
+    }
+
+    function syncDynamicRows(book) {
+        treeHost.querySelectorAll('.glbc-tree-row.is-dynamic').forEach(row => row.remove());
+        const entries = Object.values(book?.entries ?? {})
+            .filter(entry => !STATIC_UIDS.has(uidKey(entry?.uid ?? entry?.id)))
+            .sort((a, b) => Number(a?.displayIndex ?? a?.uid ?? 0) - Number(b?.displayIndex ?? b?.uid ?? 0));
+        for (const entry of entries) {
+            const uid = uidKey(entry?.uid ?? entry?.id);
+            if (!uid) continue;
+            const moduleId = moduleFromComment(entry.comment);
+            const body = groupBodyByModule(moduleId);
+            if (!body) continue;
+            const row = makeEntryRow(uid, entry.comment || `自定义节点 ${uid}`, 1);
+            row.classList.add('is-dynamic');
+            row.dataset.module = moduleId;
+            const endRow = [...body.querySelectorAll(':scope > .glbc-tree-row')]
+                .find(item => item.dataset.uid && ['21', '99', '199', '299', '399', '499'].includes(item.dataset.uid));
+            if (endRow) body.insertBefore(row, endRow);
+            else body.append(row);
         }
-        return builtPages.get(key);
     }
 
-    Object.entries(pages).forEach(([key, page]) => {
-        const tab = element('button', 'lbc-tab', page.label);
-        tab.type = 'button';
-        tab.dataset.action = 'tab';
-        tab.dataset.page = key;
-        tab.setAttribute('aria-selected', String(key === activePage));
-        tabs.append(tab);
-    });
-
-    function showPage(key) {
-        activePage = key;
-        tabs.querySelectorAll('.lbc-tab').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.page === key)));
-        pageHost.replaceChildren(getPage(key));
-        refreshVisibleStates();
-    }
-
-    async function refreshVisibleStates(force = false) {
-        const switches = [...pageHost.querySelectorAll('.lbc-switch')];
+    async function refreshTree(force = false) {
+        const rows = [...treeHost.querySelectorAll('.glbc-tree-row')];
+        const switches = rows.map(row => row.querySelector('.glbc-switch'));
         switches.forEach(button => {
             button.disabled = true;
             button.dataset.state = 'loading';
         });
         try {
-            const states = await store.getStates(switches.map(button => button.dataset.uid), { force });
-            switches.forEach(button => {
-                const enabled = states.get(button.dataset.uid);
+            const book = await store.load({ force });
+            syncDynamicRows(book);
+            const rows = [...treeHost.querySelectorAll('.glbc-tree-row')];
+            const switches = rows.map(row => row.querySelector('.glbc-switch'));
+            const states = await store.getStates(rows.map(row => row.dataset.uid), { force: false });
+            rows.forEach(row => {
+                const uid = row.dataset.uid;
+                const entry = findEntry(book, uid);
+                const title = entry?.comment || row.dataset.label || uid;
+                const kind = nodeKind(entry);
+                const dot = row.querySelector('.glbc-node-dot');
+                row.querySelector('.glbc-row-title').innerHTML = `<span>${esc(title)}</span> <span class="glbc-node-meta">#${esc(uid)}</span>`;
+                row.classList.toggle('is-tag-node', kind === 'tag');
+                row.classList.toggle('is-blue-node', kind === 'blue');
+                row.classList.toggle('is-green-node', kind === 'green');
+                dot.className = `glbc-node-dot is-${kind}`;
+                row.dataset.search = `${uid} ${title} ${entryKeys(entry).join(' ')} ${String(entry?.content ?? '').slice(0, 200)}`.toLowerCase();
+                const button = row.querySelector('.glbc-switch');
+                const enabled = states.get(uid);
                 button.disabled = false;
                 button.dataset.state = enabled === null ? 'unknown' : 'ready';
                 button.setAttribute('aria-checked', String(enabled === true));
             });
-            setStatus('状态已同步');
+            setStatus('世界树已同步');
+            applySearch();
+            if (activeUid) await renderEditor(activeUid, false);
         } catch (error) {
             switches.forEach(button => {
                 button.disabled = false;
@@ -420,18 +335,34 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         }
     }
 
-    function sectionByGroup(group) {
-        return pages[activePage].sections.find(section => section.id === group?.dataset.sectionId);
+    function applySearch() {
+        const query = search.value.trim().toLowerCase();
+        const rows = [...treeHost.querySelectorAll('.glbc-tree-row')];
+        if (!query) {
+            rows.forEach(row => { row.hidden = false; });
+            return;
+        }
+        rows.forEach(row => {
+            const visible = row.dataset.search?.includes(query);
+            row.hidden = !visible;
+            if (visible) {
+                let group = row.closest('.glbc-tree-group');
+                while (group) {
+                    group.dataset.open = 'true';
+                    group = group.parentElement?.closest?.('.glbc-tree-group');
+                }
+            }
+        });
     }
 
     async function toggleOne(button) {
         const enabled = button.getAttribute('aria-checked') !== 'true';
         button.setAttribute('aria-checked', String(enabled));
         button.disabled = true;
-        setStatus('正在保存...');
+        setStatus('正在保存开关...');
         try {
             await store.setState(button.dataset.uid, enabled);
-            setStatus('已保存');
+            setStatus('开关已保存');
         } catch (error) {
             button.setAttribute('aria-checked', String(!enabled));
             setStatus('保存失败，已恢复', 'error');
@@ -441,83 +372,206 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         }
     }
 
-    async function toggleSection(button) {
-        const group = button.closest('.lbc-group');
-        const section = sectionByGroup(group);
-        const enabled = button.dataset.enabled === 'true';
-        const switches = [...group.querySelectorAll('.lbc-switch')];
-        const uids = switches.map(item => item.dataset.uid);
-        group.querySelectorAll('.lbc-action').forEach(action => { action.disabled = true; });
-        switches.forEach(item => {
-            item.disabled = true;
-            item.setAttribute('aria-checked', String(enabled));
-        });
-        setStatus('正在批量保存...');
-        try {
-            await store.setStates(uids, enabled);
-            setStatus(`${section.label} 已更新`);
-        } catch (error) {
-            setStatus('批量保存失败，正在恢复', 'error');
-            await refreshVisibleStates(true);
-            console.error('[绿茵世界书管理器] 批量保存失败', error);
-        } finally {
-            group.querySelectorAll('.lbc-action').forEach(action => { action.disabled = false; });
-            switches.forEach(item => { item.disabled = false; });
+    async function renderEditor(uid, markActive = true) {
+        const book = await store.load();
+        const entry = findEntry(book, uid);
+        if (!entry) {
+            editor.innerHTML = '<div class="glbc-editor-empty">没有找到这个节点。</div>';
+            return;
         }
+        activeUid = String(uid);
+        if (markActive) {
+            treeHost.querySelectorAll('.glbc-tree-row').forEach(row => row.classList.toggle('is-active', row.dataset.uid === activeUid));
+        }
+        const kind = nodeKind(entry);
+        editor.innerHTML = `
+            <div class="glbc-form-row">
+                <label>节点标题</label>
+                <input class="glbc-input" data-field="comment" value="${esc(entry.comment ?? '')}">
+            </div>
+            <div class="glbc-form-row">
+                <label>关键词（绿灯节点使用，逗号或换行分隔）</label>
+                <input class="glbc-input" data-field="keys" value="${esc(joinKeys(entryKeys(entry)))}">
+            </div>
+            <div class="glbc-editor-flags">
+                <span>编号 #${esc(uid)}</span>
+                <span>类型 ${kind === 'blue' ? '蓝灯总览' : kind === 'green' ? '绿灯子条目' : '结构标签'}</span>
+                <span>深度 ${esc(entry.depth ?? entry.extensions?.depth ?? '')}</span>
+                <span>顺序 ${esc(entry.order ?? '')}</span>
+            </div>
+            <div class="glbc-form-row">
+                <label>正文内容</label>
+                <textarea class="glbc-textarea" data-field="content">${esc(entry.content ?? '')}</textarea>
+            </div>
+            <div class="glbc-editor-actions">
+                <button class="glbc-action" type="button" data-action="reload-entry">放弃修改</button>
+                <button class="glbc-action primary" type="button" data-action="save-entry">保存节点</button>
+            </div>`;
+    }
+
+    function renderNewEntryForm() {
+        activeUid = '';
+        treeHost.querySelectorAll('.glbc-tree-row').forEach(row => row.classList.remove('is-active'));
+        const moduleOptions = Object.entries(MODULES).map(([value, item]) => `<option value="${value}">${esc(item.label)}</option>`).join('');
+        editor.innerHTML = `
+            <div class="glbc-form-row">
+                <label>挂载模块</label>
+                <select class="glbc-select" data-field="new-module">${moduleOptions}</select>
+            </div>
+            <div class="glbc-form-row">
+                <label>节点类型</label>
+                <select class="glbc-select" data-field="new-kind">
+                    <option value="green" selected>绿灯子条目</option>
+                    <option value="blue">蓝灯总览</option>
+                </select>
+            </div>
+            <div class="glbc-form-row">
+                <label>节点标题</label>
+                <input class="glbc-input" data-field="new-comment" value="">
+            </div>
+            <div class="glbc-form-row">
+                <label>关键词（绿灯节点使用，逗号或换行分隔）</label>
+                <input class="glbc-input" data-field="new-keys" value="">
+            </div>
+            <div class="glbc-editor-flags">
+                <span>新节点会自动分配编号</span>
+                <span>默认启用</span>
+            </div>
+            <div class="glbc-form-row">
+                <label>正文内容</label>
+                <textarea class="glbc-textarea" data-field="new-content"></textarea>
+            </div>
+            <div class="glbc-editor-actions">
+                <button class="glbc-action" type="button" data-action="new-entry">清空重填</button>
+                <button class="glbc-action primary" type="button" data-action="create-entry">创建节点</button>
+            </div>`;
+    }
+
+    function updateEntryFields(entry, comment, content, keys) {
+        entry.comment = comment;
+        entry.content = content;
+        if ('key' in entry || !('keys' in entry)) entry.key = keys;
+        if ('keys' in entry) entry.keys = keys;
+    }
+
+    function templateUid(moduleId, kind) {
+        if (kind === 'blue') {
+            return ({ timeline: 35, league: 30, club: 31, tactic: 32, position: 33, overview: 34 })[moduleId] ?? 35;
+        }
+        return ({ timeline: 100, league: 201, club: 300, tactic: 400, position: 505, overview: 34 })[moduleId] ?? 100;
+    }
+
+    function maxDisplayIndex(book) {
+        return Math.max(0, ...Object.values(book?.entries ?? {}).map(entry => Number(entry?.displayIndex ?? entry?.extensions?.display_index ?? 0)).filter(Number.isFinite));
+    }
+
+    function setEntryShape(entry, { uid, moduleId, kind, comment, content, keys }) {
+        const id = Number(uid);
+        entry.uid = id;
+        if ('id' in entry) entry.id = id;
+        entry.comment = comment.startsWith(MODULES[moduleId].prefix) ? comment : `${MODULES[moduleId].prefix}${comment}`;
+        entry.content = content;
+        entry.constant = kind === 'blue';
+        entry.selective = kind !== 'blue';
+        entry.disable = false;
+        entry.order = MODULES[moduleId].order;
+        entry.depth = 4;
+        entry.position = 0;
+        entry.key = keys;
+        if ('keys' in entry) entry.keys = keys;
+        if (entry.extensions) {
+            entry.extensions.depth = 4;
+            entry.extensions.position = 0;
+            entry.extensions.display_index = entry.displayIndex;
+            entry.extensions.vectorized = false;
+            entry.extensions.triggers = entry.extensions.triggers ?? [];
+        }
+    }
+
+    async function createEntry() {
+        const book = await store.load();
+        const moduleId = editor.querySelector('[data-field="new-module"]')?.value || 'overview';
+        const kind = editor.querySelector('[data-field="new-kind"]')?.value || 'green';
+        const rawComment = editor.querySelector('[data-field="new-comment"]')?.value.trim() || '新资料节点';
+        const content = editor.querySelector('[data-field="new-content"]')?.value ?? '';
+        const keys = splitKeys(editor.querySelector('[data-field="new-keys"]')?.value ?? '');
+        const uid = nextUid(book);
+        const template = findEntry(book, templateUid(moduleId, kind)) || Object.values(book.entries ?? {})[0] || {};
+        const entry = clone(template);
+        entry.displayIndex = maxDisplayIndex(book) + 1;
+        if (entry.extensions) entry.extensions.display_index = entry.displayIndex;
+        setEntryShape(entry, { uid, moduleId, kind, comment: rawComment, content, keys });
+        const snapshot = clone(book);
+        try {
+            if (Array.isArray(book.entries)) book.entries.push(entry);
+            else book.entries[String(uid)] = entry;
+            if (Array.isArray(book.originalData?.entries)) {
+                const legacy = clone(entry);
+                legacy.id = Number(uid);
+                legacy.keys = keys;
+                legacy.enabled = true;
+                legacy.position = 'before_char';
+                legacy.insertion_order = MODULES[moduleId].order;
+                book.originalData.entries.push(legacy);
+            }
+            setStatus('正在创建节点...');
+            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
+            setStatus(`节点 #${uid} 已创建`);
+            await refreshTree(true);
+            await renderEditor(uid);
+        } catch (error) {
+            Object.assign(book, snapshot);
+            setStatus('创建节点失败', 'error');
+            console.error('[绿茵世界书管理器] 创建节点失败', error);
+        }
+    }
+
+    async function saveActiveEntry() {
+        if (!activeUid) return;
+        const book = await store.load();
+        const entry = findEntry(book, activeUid);
+        if (!entry) throw new Error(`Entry not found: ${activeUid}`);
+        const comment = editor.querySelector('[data-field="comment"]')?.value ?? '';
+        const content = editor.querySelector('[data-field="content"]')?.value ?? '';
+        const keys = splitKeys(editor.querySelector('[data-field="keys"]')?.value ?? '');
+        const snapshot = clone(book);
+        try {
+            updateEntryFields(entry, comment, content, keys);
+            const legacy = findLegacyEntry(book, activeUid);
+            if (legacy) updateEntryFields(legacy, comment, content, keys);
+            setStatus('正在保存节点...');
+            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
+            setStatus('节点已保存');
+            await refreshTree(true);
+        } catch (error) {
+            Object.assign(book, snapshot);
+            setStatus('节点保存失败', 'error');
+            console.error('[绿茵世界书管理器] 节点保存失败', error);
+        }
+    }
+
+    function positionPanel() {
+        if (hostWindow.innerWidth <= 760) return;
+        const rect = launcher.getBoundingClientRect();
+        const width = Math.min(980, hostWindow.innerWidth - 24);
+        const height = Math.min(760, hostWindow.innerHeight - 24);
+        let left = rect.left - width - 12;
+        if (left < 12) left = rect.right + 12;
+        panel.style.left = `${Math.max(12, Math.min(hostWindow.innerWidth - width - 12, left))}px`;
+        panel.style.top = `${Math.max(12, Math.min(hostWindow.innerHeight - height - 12, rect.top))}px`;
     }
 
     function closePanel() {
         panel.hidden = true;
         launcher.setAttribute('aria-expanded', 'false');
-        forceCompact = false;
-        syncCompactLayout();
     }
 
-    function positionPanel() {
-        if (root.dataset.compact === 'true') {
-            const viewportLeft = viewport?.offsetLeft ?? 0;
-            const viewportTop = viewport?.offsetTop ?? 0;
-            const viewportWidth = viewport?.width ?? hostWindow.innerWidth;
-            const viewportHeight = viewport?.height ?? hostWindow.innerHeight;
-            const panelHeight = Math.min(720, viewportHeight * 0.82);
-            panel.style.setProperty('left', `${viewportLeft}px`, 'important');
-            panel.style.setProperty('right', 'auto', 'important');
-            panel.style.setProperty('bottom', 'auto', 'important');
-            panel.style.setProperty('top', `${viewportTop + viewportHeight - panelHeight}px`, 'important');
-            panel.style.setProperty('width', `${viewportWidth}px`, 'important');
-            panel.style.setProperty('max-height', `${panelHeight}px`, 'important');
-            return;
-        }
-        const launcherRect = launcher.getBoundingClientRect();
-        const width = Math.min(440, hostWindow.innerWidth - 24);
-        const height = Math.min(680, hostWindow.innerHeight - 24);
-        let left = launcherRect.left - width - 12;
-        if (left < 12) left = launcherRect.right + 12;
-        left = Math.max(12, Math.min(hostWindow.innerWidth - width - 12, left));
-        const top = Math.max(12, Math.min(hostWindow.innerHeight - height - 12, launcherRect.top));
-        panel.style.left = `${left}px`;
-        panel.style.top = `${top}px`;
-    }
-
-    function syncCompactLayout() {
-        const viewportWidth = viewport?.width ?? hostWindow.innerWidth;
-        const compact = forceCompact || viewportWidth <= 700 || hostWindow.matchMedia('(max-width: 640px)').matches;
-        root.dataset.compact = String(compact);
-
-        if (!compact) {
-            ['left', 'right', 'bottom', 'top', 'width', 'max-height'].forEach(property => panel.style.removeProperty(property));
-        }
-
-        if (!panel.hidden) positionPanel();
-    }
-
-    function openPanel(fromWandMenu = false) {
-        forceCompact = fromWandMenu;
-        syncCompactLayout();
+    async function openPanel() {
         panel.hidden = false;
         launcher.setAttribute('aria-expanded', 'true');
         positionPanel();
-        showPage(activePage);
+        buildTree();
+        await refreshTree(true);
     }
 
     function registerWandMenuEntry() {
@@ -526,49 +580,40 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
             if (wandRetryCount++ < 30) wandRetryTimer = setTimeout(registerWandMenuEntry, 1000);
             return;
         }
-
-        if (hostDocument.getElementById('lbc-wand-menu-container')) return;
-
+        if (hostDocument.getElementById('glbc-wand-menu-container')) return;
         const container = element('div', 'extension_container interactable');
-        container.id = 'lbc-wand-menu-container';
-        container.dataset.lbcOwner = scriptId;
-        container.tabIndex = 0;
-
+        container.id = 'glbc-wand-menu-container';
+        container.dataset.glbcOwner = scriptId;
         const item = element('div', 'list-group-item flex-container flexGap5 interactable');
-        item.id = 'lbc-wand-menu-item';
         item.title = '打开绿茵世界书管理器';
-        item.innerHTML = '<div class="fa-fw fa-solid fa-book-open extensionsMenuExtensionButton"></div><span>绿茵世界书管理器</span>';
+        item.innerHTML = '<div class="fa-fw fa-solid fa-futbol extensionsMenuExtensionButton"></div><span>绿茵世界书管理器</span>';
         item.addEventListener('click', event => {
             event.preventDefault();
-            const wandButton = hostDocument.getElementById('extensionsMenuButton');
-            if (hostWindow.getComputedStyle(extensionsMenu).display !== 'none') wandButton?.click();
-            openPanel(true);
+            hostDocument.getElementById('extensionsMenuButton')?.click();
+            void openPanel();
         }, eventOptions);
-
         container.append(item);
         extensionsMenu.append(container);
     }
 
-    function handlePanelClick(event) {
+    panel.addEventListener('click', event => {
         const button = event.target.closest('[data-action]');
         if (!button || !panel.contains(button)) return;
         const action = button.dataset.action;
         if (action === 'close') closePanel();
-        else if (action === 'refresh') refreshVisibleStates(true);
-        else if (action === 'tab') showPage(button.dataset.page);
+        else if (action === 'refresh') void refreshTree(true);
         else if (action === 'group') {
-            const group = button.closest('.lbc-group');
+            const group = button.closest('.glbc-tree-group');
             group.dataset.open = String(group.dataset.open !== 'true');
-        } else if (action === 'toggle') toggleOne(button);
-        else if (action === 'batch') toggleSection(button);
-    }
+        } else if (action === 'toggle') void toggleOne(button);
+        else if (action === 'edit') void renderEditor(button.dataset.uid);
+        else if (action === 'save-entry') void saveActiveEntry();
+        else if (action === 'reload-entry') void renderEditor(activeUid);
+        else if (action === 'new-entry') renderNewEntryForm();
+        else if (action === 'create-entry') void createEntry();
+    }, eventOptions);
 
-    function clampLauncher() {
-        if (!launcher.style.left) return;
-        const rect = launcher.getBoundingClientRect();
-        launcher.style.left = `${Math.max(0, Math.min(hostWindow.innerWidth - rect.width, rect.left))}px`;
-        launcher.style.top = `${Math.max(0, Math.min(hostWindow.innerHeight - rect.height, rect.top))}px`;
-    }
+    search.addEventListener('input', applySearch, eventOptions);
 
     launcher.addEventListener('pointerdown', event => {
         const rect = launcher.getBoundingClientRect();
@@ -588,12 +633,6 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
             launcher.removeEventListener('pointermove', move);
             launcher.removeEventListener('pointerup', up);
             launcher.removeEventListener('pointercancel', up);
-            if (dragged) {
-                hostWindow.localStorage.setItem('lbc-launcher-position', JSON.stringify({
-                    left: parseFloat(launcher.style.left),
-                    top: parseFloat(launcher.style.top),
-                }));
-            }
         };
         launcher.addEventListener('pointermove', move);
         launcher.addEventListener('pointerup', up);
@@ -605,10 +644,9 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
             dragged = false;
             return;
         }
-        if (panel.hidden) openPanel(false);
+        if (panel.hidden) void openPanel();
         else closePanel();
     }, eventOptions);
-    panel.addEventListener('click', handlePanelClick, eventOptions);
 
     hostDocument.addEventListener('pointerdown', event => {
         if (!panel.hidden && !panel.contains(event.target) && !launcher.contains(event.target)) closePanel();
@@ -617,33 +655,14 @@ import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/Sill
         if (event.key === 'Escape') closePanel();
     }, eventOptions);
     hostWindow.addEventListener('resize', () => {
-        syncCompactLayout();
-        if (root.dataset.compact !== 'true') clampLauncher();
         if (!panel.hidden) positionPanel();
     }, eventOptions);
-    viewport?.addEventListener('resize', syncCompactLayout, eventOptions);
-    viewport?.addEventListener('scroll', syncCompactLayout, eventOptions);
-
-    try {
-        const saved = JSON.parse(hostWindow.localStorage.getItem('lbc-launcher-position'));
-        const compact = (viewport?.width ?? hostWindow.innerWidth) <= 700;
-        if (!compact && Number.isFinite(saved?.left) && Number.isFinite(saved?.top)) {
-            launcher.style.right = 'auto';
-            launcher.style.bottom = 'auto';
-            launcher.style.left = `${saved.left}px`;
-            launcher.style.top = `${saved.top}px`;
-            clampLauncher();
-        }
-    } catch {
-        // Ignore malformed position data.
-    }
-    syncCompactLayout();
     registerWandMenuEntry();
 
     hostWindow[cleanupKey] = () => {
         events.abort();
         clearTimeout(wandRetryTimer);
         store.flush().catch(error => console.error('[绿茵世界书管理器] 清理时保存失败', error));
-        hostDocument.querySelectorAll(`[data-lbc-owner="${scriptId}"]`).forEach(node => node.remove());
+        hostDocument.querySelectorAll(`[data-glbc-owner="${scriptId}"]`).forEach(node => node.remove());
     };
 })();
