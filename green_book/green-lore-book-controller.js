@@ -90,6 +90,7 @@ import { createGreenLoreBookActions } from './green-lore-book-controller-actions
         uidKey,
         subsectionFromComment,
     });
+    let actions;
 
     function canHaveSubsections(moduleId) {
         return subsectionParentModules.has(String(moduleId ?? '')) || isSectionModule(moduleId);
