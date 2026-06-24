@@ -1,5 +1,7 @@
-import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/SillyTavern_Script@1bbded69af6fa712c5d376821c549ccf7d1d776d/lore-book-controller-store.js?v=20260614-4';
-import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry, findLegacyEntry, isSectionModule, isSubsectionModule, joinKeys, maxDisplayIndex, moduleFromComment, nextUid, nodeKind, orderFor, parseSubsectionModule, removeEntryByUid, sectionModuleId, setEntryShape, splitKeys, stripEntryPrefixes, subsectionFromComment, subsectionModuleId, templateUid, uidKey, updateEntryFields } from './green-lore-book-controller-core.js?v=20260624-placement1';
+﻿import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
+import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, entryKeys, esc, findEntry, isSectionModule, isSubsectionModule, joinKeys, moduleFromComment, nodeKind, parseSubsectionModule, sectionModuleId, stripEntryPrefixes, subsectionFromComment, subsectionModuleId, uidKey } from './green-lore-book-controller-core.js?v=20260624-placement1';
+import { createGreenLoreBookTreeState } from './green-lore-book-controller-state.js?v=20260624-state1';
+import { createGreenLoreBookActions } from './green-lore-book-controller-actions.js?v=20260624-actions1';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -31,33 +33,8 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
     });
 
-    const css = `
-        .glbc-root,.glbc-root *{box-sizing:border-box}
-        .glbc-root{--bg:var(--SmartThemeBlurTintColor,#20242b);--text:var(--SmartThemeBodyColor,#f1f3f5);--surface:color-mix(in srgb,var(--bg) 91%,var(--text) 9%);--hover:color-mix(in srgb,var(--bg) 82%,var(--text) 18%);--border:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);--muted:color-mix(in srgb,var(--text) 64%,var(--bg) 36%);--accent:var(--SmartThemeQuoteColor,#79a7ff);position:fixed;inset:0;z-index:2147483600;pointer-events:none;font:14px/1.45 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:var(--text)}
-        .glbc-launcher{position:fixed;right:24px;bottom:28px;width:54px;height:54px;display:grid;place-items:center;border:1px solid var(--border);border-radius:50%;background:var(--bg);color:var(--text);box-shadow:0 8px 26px rgb(0 0 0 / 28%);cursor:grab;pointer-events:auto;touch-action:none;z-index:2147483647}
-        .glbc-panel{position:fixed;width:min(980px,calc(100vw - 24px));height:min(760px,calc(100vh - 24px));display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;border:1px solid var(--border);border-radius:16px;background:var(--bg);box-shadow:0 18px 60px rgb(0 0 0 / 38%);pointer-events:auto;backdrop-filter:blur(18px);z-index:2147483646}
-        .glbc-panel[hidden]{display:none}
-        .glbc-header,.glbc-footer{display:flex;align-items:center;gap:10px;padding:12px 14px}.glbc-header{border-bottom:1px solid var(--border)}.glbc-footer{min-height:42px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}.glbc-title{min-width:0;flex:1}.glbc-title strong,.glbc-title span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-title span{color:var(--muted);font-size:12px}
-        .glbc-icon-button,.glbc-action,.glbc-switch,.glbc-tree-head,.glbc-edit-button,.glbc-group-add,.glbc-group-remove{border:0;color:inherit;font:inherit;cursor:pointer}.glbc-icon-button{width:38px;height:38px;border-radius:10px;background:transparent;font-size:20px}.glbc-icon-button:hover,.glbc-action:hover,.glbc-tree-row:hover,.glbc-edit-button:hover,.glbc-group-add:hover,.glbc-group-remove:hover{background:var(--hover)}.glbc-action.danger{background:color-mix(in srgb,#ef4444 22%,var(--hover));color:#ffb4b4}.glbc-action.danger:hover{background:color-mix(in srgb,#ef4444 34%,var(--hover))}
-        .glbc-body{min-height:0;display:grid;grid-template-columns:minmax(390px,44%) minmax(0,1fr)}
-        .glbc-tree{min-height:0;overflow:auto;padding:12px 10px 12px 12px;border-right:1px solid var(--border)}.glbc-editor{min-height:0;display:grid;grid-template-rows:none;align-content:start;overflow:auto;padding:12px;gap:10px}
-        .glbc-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:10px}.glbc-search{width:100%;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:0 10px}
-        .glbc-tree-group{margin:0 0 8px}.glbc-tree-head{width:100%;min-height:42px;display:grid;grid-template-columns:28px minmax(0,1fr) auto auto auto;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;background:var(--surface);text-align:left}.glbc-tree-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--group-color) 18%,transparent);color:var(--group-color);font-weight:700}.glbc-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-group-add,.glbc-group-remove{width:28px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;font-weight:700}.glbc-group-add.is-subsection-add{font-size:13px}.glbc-group-remove{color:#ffb4b4}.glbc-group-remove[hidden]{display:none}.glbc-tree-group[data-open=false]>.glbc-tree-children{display:none}.glbc-tree-group[data-open=true]>.glbc-tree-head .glbc-chevron{transform:rotate(90deg)}.glbc-chevron{transition:transform 160ms ease;color:var(--muted)}.glbc-tree-group.is-drag-over>.glbc-tree-head{outline:2px solid var(--accent);outline-offset:1px}
-        .glbc-tree-children{margin-left:10px;padding-left:11px;border-left:1px solid var(--border)}.glbc-tree-row{--level-indent:0px;--kind-indent:0px;min-height:40px;display:grid;grid-template-columns:14px minmax(0,1fr) 122px;align-items:center;column-gap:9px;margin-left:var(--level-indent);padding:5px 6px 5px calc(6px + var(--kind-indent));border-radius:9px}.glbc-tree-row[hidden]{display:none}.glbc-tree-row[draggable=true]{cursor:grab}.glbc-tree-row.is-dragging{opacity:.55}.glbc-tree-row.is-active{background:color-mix(in srgb,var(--accent) 24%,transparent)}.glbc-node-dot{width:9px;height:9px;border-radius:50%;background:var(--muted);justify-self:center}.glbc-node-dot.is-blue{background:#60a5fa}.glbc-node-dot.is-green{background:#22c55e}.glbc-node-dot.is-tag{background:#f59e0b}.glbc-row-title{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.32;word-break:break-word}.glbc-node-meta{color:var(--muted);font-size:11px;white-space:nowrap}.glbc-row-actions{width:122px;display:grid;grid-template-columns:30px 30px 48px;align-items:center;justify-content:end;gap:7px}
-        .glbc-tree-group.is-virtual-subsection>.glbc-tree-head{min-height:36px;background:color-mix(in srgb,var(--surface) 72%,transparent);grid-template-columns:24px minmax(0,1fr) auto auto auto}.glbc-tree-group.is-virtual-subsection .glbc-tree-icon{width:22px;height:22px;font-size:12px}.glbc-tree-group.is-virtual-subsection .glbc-tree-name{font-size:13px;color:var(--muted)}
-        .glbc-tree-name.is-inline-editing{display:block;width:100%;height:30px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--text);padding:4px 7px;font:13px/1.35 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}
-        .glbc-row-title.is-inline-editing{display:block;width:100%;min-width:0;height:30px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--text);padding:4px 7px;font:13px/1.35 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}
-        .glbc-tree-row.is-tag-node{--kind-indent:0px}.glbc-tree-row.is-blue-node{--kind-indent:14px}.glbc-tree-row.is-green-node{--kind-indent:28px}
-        .glbc-switch{position:relative;width:46px;height:26px;flex:0 0 auto;border-radius:999px;background:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);transition:background 130ms ease}.glbc-switch::after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgb(0 0 0 / 28%);transition:transform 130ms ease}.glbc-switch[aria-checked=true]{background:var(--accent)}.glbc-switch[aria-checked=true]::after{transform:translateX(20px)}.glbc-switch[data-state=unknown]{background:#a56c32}.glbc-switch:disabled,.glbc-action:disabled{cursor:wait;opacity:.55}
-        .glbc-edit-button{width:30px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center}.glbc-edit-button.danger{color:#ffb4b4}.glbc-edit-button[hidden]{display:none}
-        .glbc-editor-empty{height:100%;display:grid;place-items:center;color:var(--muted);text-align:center}.glbc-form-row{display:grid;gap:5px;min-width:0}.glbc-form-row label{color:var(--muted);font-size:12px}.glbc-input,.glbc-select,.glbc-textarea{width:100%;min-width:0;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:8px 10px;font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}.glbc-textarea{height:clamp(180px,36vh,320px);min-height:180px;resize:vertical}.glbc-editor-flags{display:flex;gap:8px 10px;color:var(--muted);font-size:12px;flex-wrap:wrap}.glbc-editor-flags span{min-width:0}.glbc-editor-actions{display:flex;gap:8px;justify-content:flex-end}.glbc-action{min-height:34px;padding:0 12px;border-radius:9px;background:var(--hover)}.glbc-action.primary{background:var(--accent);color:#fff}.glbc-status{flex:1}.glbc-status[data-kind=error]{color:#ff8d8d}
-        @media(max-width:760px){.glbc-launcher{right:16px!important;bottom:18px!important;left:auto!important;top:auto!important;width:58px;height:58px;touch-action:manipulation}.glbc-panel{left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100vw!important;height:min(88vh,760px);height:min(88dvh,760px);max-height:calc(100vh - 8px);border-width:1px 0 0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom);transform:translateZ(0)}.glbc-body{grid-template-columns:1fr;grid-template-rows:46% 54%}.glbc-tree{border-right:0;border-bottom:1px solid var(--border);padding:10px}.glbc-tree-row{grid-template-columns:14px minmax(0,1fr) 116px}.glbc-tree-row.is-blue-node{--kind-indent:10px}.glbc-tree-row.is-green-node{--kind-indent:20px}.glbc-row-actions{width:116px;grid-template-columns:28px 28px 46px;gap:7px}}
-        .glbc-root[data-compact=true] .glbc-launcher{display:none}
-        .glbc-root[data-compact=true] .glbc-panel{border-width:1px 0 0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom)}
-        .glbc-root[data-compact=true] .glbc-body{grid-template-columns:1fr;grid-template-rows:46% 54%}
-        .glbc-root[data-compact=true] .glbc-tree{border-right:0;border-bottom:1px solid var(--border);padding:10px}
-    `;
-
+    const cssHref = new URL('./green-lore-book-controller.css?v=20260624-css1', import.meta.url).href;
+    const css = `@import url("${cssHref}");`;
     const style = hostDocument.createElement('style');
     style.dataset.glbcOwner = scriptId;
     style.textContent = css;
@@ -66,8 +43,6 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     const root = hostDocument.createElement('div');
     root.className = 'glbc-root';
     root.dataset.glbcOwner = scriptId;
-    const subsectionStorageKey = `${scriptId}:subsections:${BOOK_FILE}`;
-    const placementStorageKey = `${scriptId}:subsection-placements:${BOOK_FILE}`;
     root.innerHTML = `
         <button class="glbc-launcher" type="button" aria-label="打开绿茵世界书管理器" aria-expanded="false">⚽</button>
         <section class="glbc-panel" aria-label="绿茵世界书管理器" hidden>
@@ -99,6 +74,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     let dragged = false;
     let draggedEntryUid = '';
     let draggedSubsectionModuleId = '';
+    let suppressGroupClickUntil = 0;
     let openedAt = 0;
     let lastTouchToggle = 0;
     let forceCompact = false;
@@ -106,6 +82,14 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     let wandRetryCount = 0;
     const subsectionParentModules = new Set(['timeline', 'league', 'club', 'tactic', 'position', 'rules']);
     const defaultSubsectionTitle = '未分组三级标题';
+    const treeState = createGreenLoreBookTreeState({
+        storage: hostWindow.localStorage,
+        scriptId,
+        bookFile: BOOK_FILE,
+        defaultSubsectionTitle,
+        uidKey,
+        subsectionFromComment,
+    });
 
     function canHaveSubsections(moduleId) {
         return subsectionParentModules.has(String(moduleId ?? '')) || isSectionModule(moduleId);
@@ -128,75 +112,6 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         status.dataset.kind = kind;
     }
 
-    function readSubsectionConfig() {
-        try {
-            const parsed = JSON.parse(hostWindow.localStorage.getItem(subsectionStorageKey) || '{}');
-            return parsed && typeof parsed === 'object' ? parsed : {};
-        } catch {
-            return {};
-        }
-    }
-
-    function writeSubsectionConfig(config) {
-        hostWindow.localStorage.setItem(subsectionStorageKey, JSON.stringify(config));
-    }
-
-    function readPlacementConfig() {
-        try {
-            const parsed = JSON.parse(hostWindow.localStorage.getItem(placementStorageKey) || '{}');
-            return parsed && typeof parsed === 'object' ? parsed : {};
-        } catch {
-            return {};
-        }
-    }
-
-    function writePlacementConfig(config) {
-        hostWindow.localStorage.setItem(placementStorageKey, JSON.stringify(config));
-    }
-
-    function setEntryPlacement(uid, parentModuleId, title) {
-        const key = uidKey(uid);
-        const cleanTitle = String(title ?? '').trim();
-        const config = readPlacementConfig();
-        if (!key || !cleanTitle || cleanTitle === defaultSubsectionTitle) delete config[key];
-        else config[key] = { parentModuleId, title: cleanTitle };
-        writePlacementConfig(config);
-    }
-
-    function removeEntryPlacement(uid) {
-        const config = readPlacementConfig();
-        delete config[uidKey(uid)];
-        writePlacementConfig(config);
-    }
-
-    function configuredSubsections(sectionUid) {
-        const items = readSubsectionConfig()[uidKey(sectionUid)];
-        return Array.isArray(items) ? items.filter(Boolean) : [];
-    }
-
-    function addConfiguredSubsection(sectionUid, title) {
-        const cleanTitle = String(title ?? '').trim();
-        const key = uidKey(sectionUid);
-        if (!key || !cleanTitle) return false;
-        const config = readSubsectionConfig();
-        const items = Array.isArray(config[key]) ? config[key] : [];
-        if (!items.includes(cleanTitle)) items.push(cleanTitle);
-        config[key] = items;
-        writeSubsectionConfig(config);
-        return true;
-    }
-
-    function removeConfiguredSubsection(parentModuleId, title) {
-        const key = uidKey(parentModuleId);
-        const cleanTitle = String(title ?? '').trim();
-        if (!key || !cleanTitle) return;
-        const config = readSubsectionConfig();
-        const items = Array.isArray(config[key]) ? config[key].filter(item => item !== cleanTitle) : [];
-        if (items.length) config[key] = items;
-        else delete config[key];
-        writeSubsectionConfig(config);
-    }
-
     function dragTargetGroup(target) {
         const group = target?.closest?.('.glbc-tree-group');
         if (!group) return null;
@@ -206,6 +121,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     }
 
     function clearDragState() {
+        if (draggedEntryUid || draggedSubsectionModuleId) suppressGroupClickUntil = Date.now() + 350;
         draggedEntryUid = '';
         draggedSubsectionModuleId = '';
         treeHost.querySelectorAll('.is-dragging,.is-drag-over').forEach(node => {
@@ -214,77 +130,11 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     }
 
     async function moveEntryToSubsection(uid, targetModuleId, subsectionTitle = '') {
-        const book = await store.load();
-        const entry = findEntry(book, uid);
-        if (!entry || nodeKind(entry) !== 'green') {
-            setStatus('只能拖动绿灯三级条目', 'error');
-            return;
-        }
-        const parentModuleId = isSubsectionModule(targetModuleId)
-            ? parseSubsectionModule(targetModuleId)?.parentModuleId
-            : targetModuleId;
-        if (!canHaveSubsections(parentModuleId)) {
-            setStatus('这个位置不能收纳三级条目', 'error');
-            return;
-        }
-        const title = stripEntryPrefixes(entry.comment) || `节点 #${uid}`;
-        const cleanSubsection = subsectionTitle && subsectionTitle !== defaultSubsectionTitle ? subsectionTitle : '';
-        const nextComment = `${modulePrefix(parentModuleId)}${title}`;
-        const snapshot = clone(book);
-        try {
-            updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
-            const legacy = findLegacyEntry(book, uid);
-            if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
-            setEntryPlacement(uid, parentModuleId, cleanSubsection);
-            setStatus('正在归纳条目...');
-            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
-            setStatus(cleanSubsection ? `已归纳到「${cleanSubsection}」` : '已移出二级标题');
-            await refreshTree(true);
-            if (activeUid === String(uid)) await renderEditor(uid, false);
-        } catch (error) {
-            Object.assign(book, snapshot);
-            setStatus('拖动归纳失败', 'error');
-            console.error('[绿茵世界书管理器] 拖动归纳失败', error);
-        }
+        await actions.moveEntryToSubsection(uid, targetModuleId, subsectionTitle);
     }
 
-    async function moveSubsectionToParent(sourceModuleId, targetParentModuleId) {
-        const source = parseSubsectionModule(sourceModuleId);
-        const targetParent = isSubsectionModule(targetParentModuleId)
-            ? parseSubsectionModule(targetParentModuleId)?.parentModuleId
-            : targetParentModuleId;
-        if (!source?.parentModuleId || !source.title || source.title === defaultSubsectionTitle || !canHaveSubsections(targetParent)) return;
-        if (source.parentModuleId === targetParent) return;
-        const book = await store.load();
-        const affected = Object.values(book?.entries ?? {})
-            .filter(entry => {
-                const placement = entryPlacement(entry);
-                const legacy = subsectionFromComment(entry?.comment);
-                return (placement?.parentModuleId === source.parentModuleId && placement.title === source.title)
-                    || (legacy?.parentModuleId === source.parentModuleId && legacy.title === source.title);
-            });
-        const snapshot = clone(book);
-        try {
-            removeConfiguredSubsection(source.parentModuleId, source.title);
-            addConfiguredSubsection(targetParent, source.title);
-            for (const entry of affected) {
-                const uid = uidKey(entry?.uid ?? entry?.id);
-                const title = stripEntryPrefixes(entry.comment) || `节点 #${uid}`;
-                const nextComment = `${modulePrefix(targetParent)}${title}`;
-                updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
-                const legacy = findLegacyEntry(book, uid);
-                if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
-                setEntryPlacement(uid, targetParent, source.title);
-            }
-            setStatus('正在移动二级标题...');
-            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
-            setStatus(`二级标题「${source.title}」已移动`);
-            await refreshTree(true);
-        } catch (error) {
-            Object.assign(book, snapshot);
-            setStatus('移动二级标题失败', 'error');
-            console.error('[绿茵世界书管理器] 移动二级标题失败', error);
-        }
+    async function moveSubsectionToParent(sourceModuleId, targetParentModuleId, targetSubsectionTitle = '', insertAfter = false) {
+        await actions.moveSubsectionToParent(sourceModuleId, targetParentModuleId, targetSubsectionTitle, insertAfter);
     }
 
     function insertGroupBeforeModuleEnd(parentModuleId, group) {
@@ -390,28 +240,6 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         return group;
     }
 
-    function collectModuleSubsections(entries, parentModuleId) {
-        const parent = uidKey(parentModuleId);
-        const titles = new Set(configuredSubsections(parent));
-        const placements = readPlacementConfig();
-        for (const placement of Object.values(placements)) {
-            if (placement?.parentModuleId === parent && placement.title) titles.add(placement.title);
-        }
-        for (const entry of entries) {
-            const subsection = subsectionFromComment(entry?.comment);
-            if (subsection?.parentModuleId === parent && subsection.title) titles.add(subsection.title);
-        }
-        return [...titles];
-    }
-
-    function entryPlacement(entry) {
-        const uid = uidKey(entry?.uid ?? entry?.id);
-        const placement = readPlacementConfig()[uid];
-        if (placement?.parentModuleId && placement.title) return placement;
-        const legacy = subsectionFromComment(entry?.comment);
-        return legacy?.title ? { parentModuleId: legacy.parentModuleId, title: legacy.title } : null;
-    }
-
     function ensureSubsectionGroup(parentModuleId, title) {
         const moduleId = subsectionModuleId(parentModuleId, title);
         let body = groupBodyByModule(moduleId);
@@ -427,7 +255,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const rows = [...parentBody.querySelectorAll(':scope > .glbc-tree-row')]
             .filter(row => {
                 const entry = findEntry(book, row.dataset.uid);
-                return nodeKind(entry) === 'green' && !entryPlacement(entry);
+                return nodeKind(entry) === 'green' && !treeState.placementForEntry(entry);
             });
         if (!rows.length) return;
         const defaultBody = ensureSubsectionGroup(parentModuleId, defaultSubsectionTitle);
@@ -438,7 +266,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         for (const row of [...treeHost.querySelectorAll('.glbc-tree-row:not(.is-dynamic)')]) {
             const entry = findEntry(book, row.dataset.uid);
             if (!entry || nodeKind(entry) !== 'green') continue;
-            const placement = entryPlacement(entry);
+            const placement = treeState.placementForEntry(entry);
             if (!placement?.parentModuleId || !placement.title) continue;
             const body = ensureSubsectionGroup(placement.parentModuleId, placement.title);
             body?.append(row);
@@ -495,7 +323,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         for (const parentModuleId of subsectionParents) {
             const parentBody = groupBodyByModule(parentModuleId);
             if (!parentBody) continue;
-            for (const title of collectModuleSubsections(entries, parentModuleId)) {
+            for (const title of treeState.subsectionTitlesFor(parentModuleId, entries)) {
                 insertGroupBeforeModuleEnd(parentModuleId, makeVirtualSubsectionGroup({ parentModuleId, title }, isSectionModule(parentModuleId) ? 2 : 1));
             }
         }
@@ -504,7 +332,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             if (!uid) continue;
             const moduleId = moduleFromComment(entry.comment);
             if (moduleId === 'section') continue;
-            const placement = entryPlacement(entry);
+            const placement = treeState.placementForEntry(entry);
             const targetModuleId = placement?.title
                 ? subsectionModuleId(placement.parentModuleId, placement.title)
                 : (canHaveSubsections(moduleId) && nodeKind(entry) === 'green' ? subsectionModuleId(moduleId, defaultSubsectionTitle) : moduleId);
@@ -744,141 +572,23 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     async function createSubsection(button) {
         const parentModuleId = button.dataset.parentModule;
         const title = editor.querySelector('[data-field="new-subsection-title"]')?.value.trim();
-        if (!title) {
-            setStatus('二级标题不能为空', 'error');
-            return;
-        }
-        addConfiguredSubsection(parentModuleId, title);
-        setStatus(`二级标题「${title}」已加入控制器`);
-        await refreshTree(false);
+        await actions.createSubsection(parentModuleId, title);
     }
 
     async function deleteSubsection(button) {
-        const subsection = parseSubsectionModule(button.dataset.module);
-        if (!subsection?.parentModuleId || !subsection.title || subsection.title === defaultSubsectionTitle) return;
-        const book = await store.load();
-        const affected = Object.values(book?.entries ?? {})
-            .filter(entry => {
-                const placement = entryPlacement(entry);
-                return placement?.parentModuleId === subsection.parentModuleId && placement.title === subsection.title;
-            });
-        const message = affected.length
-            ? `删除二级标题「${subsection.title}」？下面的 ${affected.length} 个绿灯条目会移到未分组三级标题，不会被删除。`
-            : `删除空二级标题「${subsection.title}」？`;
-        if (!hostWindow.confirm(message)) return;
-        const snapshot = clone(book);
-        try {
-            for (const entry of affected) {
-                const uid = uidKey(entry?.uid ?? entry?.id);
-                const nextComment = `${modulePrefix(subsection.parentModuleId)}${stripEntryPrefixes(entry.comment) || `节点 #${uid}`}`;
-                updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
-                const legacy = findLegacyEntry(book, uid);
-                if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
-                removeEntryPlacement(uid);
-            }
-            removeConfiguredSubsection(subsection.parentModuleId, subsection.title);
-            setStatus('正在删除二级标题...');
-            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
-            setStatus(`二级标题「${subsection.title}」已删除`);
-            await refreshTree(true);
-        } catch (error) {
-            Object.assign(book, snapshot);
-            setStatus('删除二级标题失败', 'error');
-            console.error('[绿茵世界书管理器] 删除二级标题失败', error);
-        }
+        await actions.deleteSubsection(button.dataset.module);
     }
 
     async function renameSubsection(moduleId, nextTitle) {
-        const subsection = parseSubsectionModule(moduleId);
-        const cleanTitle = String(nextTitle ?? '').trim();
-        if (!subsection?.parentModuleId || !subsection.title || !cleanTitle || cleanTitle === subsection.title) {
-            return;
-        }
-        const book = await store.load();
-        const affected = subsection.title === defaultSubsectionTitle
-            ? Object.values(book?.entries ?? {}).filter(entry => {
-                const moduleId = moduleFromComment(entry?.comment);
-                return moduleId === subsection.parentModuleId && nodeKind(entry) === 'green' && !entryPlacement(entry);
-            })
-            : Object.values(book?.entries ?? {}).filter(entry => {
-                const current = entryPlacement(entry);
-                return current?.parentModuleId === subsection.parentModuleId && current.title === subsection.title;
-            });
-        const snapshot = clone(book);
-        try {
-            for (const entry of affected) {
-                const uid = uidKey(entry?.uid ?? entry?.id);
-                const nextComment = `${modulePrefix(subsection.parentModuleId)}${stripEntryPrefixes(entry.comment) || `节点 #${uid}`}`;
-                updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
-                const legacy = findLegacyEntry(book, uid);
-                if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
-                setEntryPlacement(uid, subsection.parentModuleId, cleanTitle);
-            }
-            if (subsection.title !== defaultSubsectionTitle) removeConfiguredSubsection(subsection.parentModuleId, subsection.title);
-            addConfiguredSubsection(subsection.parentModuleId, cleanTitle);
-            setStatus('正在重命名二级标题...');
-            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
-            setStatus(`二级标题已改为「${cleanTitle}」`);
-            await refreshTree(true);
-        } catch (error) {
-            Object.assign(book, snapshot);
-            setStatus('重命名二级标题失败', 'error');
-            console.error('[绿茵世界书管理器] 重命名二级标题失败', error);
-        }
+        await actions.renameSubsection(moduleId, nextTitle);
     }
 
     async function renameDynamicSection(sectionUid, nextTitle) {
-        const cleanTitle = String(nextTitle ?? '').trim();
-        if (!sectionUid || !cleanTitle) return;
-        const book = await store.load();
-        const entry = findEntry(book, sectionUid);
-        if (!entry || moduleFromComment(entry.comment) !== 'section') return;
-        const nextComment = `[section]${cleanTitle}`;
-        const snapshot = clone(book);
-        try {
-            updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
-            const legacy = findLegacyEntry(book, sectionUid);
-            if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
-            setStatus('正在重命名一级标题...');
-            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
-            setStatus(`一级标题已改为「${cleanTitle}」`);
-            await refreshTree(true);
-            if (activeUid === String(sectionUid)) await renderEditor(sectionUid, false);
-        } catch (error) {
-            Object.assign(book, snapshot);
-            setStatus('重命名一级标题失败', 'error');
-            console.error('[绿茵世界书管理器] 重命名一级标题失败', error);
-        }
+        await actions.renameDynamicSection(sectionUid, nextTitle);
     }
 
     async function renameEntryTitle(uid, nextTitle) {
-        const targetUid = uidKey(uid);
-        const cleanTitle = String(nextTitle ?? '').trim();
-        if (!targetUid || !cleanTitle) return;
-        const book = await store.load();
-        const entry = findEntry(book, targetUid);
-        if (!entry || nodeKind(entry) === 'tag') return;
-        const moduleId = moduleFromComment(entry.comment);
-        const placement = entryPlacement(entry);
-        const parentModuleId = placement?.parentModuleId || moduleId;
-        const nextComment = moduleId === 'section'
-            ? `[section]${cleanTitle}`
-            : `${modulePrefix(parentModuleId)}${cleanTitle}`;
-        const snapshot = clone(book);
-        try {
-            updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
-            const legacy = findLegacyEntry(book, targetUid);
-            if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
-            setStatus('正在重命名节点...');
-            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
-            setStatus(`节点已改为「${cleanTitle}」`);
-            await refreshTree(true);
-            if (activeUid === targetUid) await renderEditor(targetUid, false);
-        } catch (error) {
-            Object.assign(book, snapshot);
-            setStatus('重命名节点失败', 'error');
-            console.error('[绿茵世界书管理器] 重命名节点失败', error);
-        }
+        await actions.renameEntryTitle(uid, nextTitle);
     }
 
     function startInlineGroupRename(group) {
@@ -953,89 +663,17 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
 
 
     async function createEntry() {
-        const book = await store.load();
         const moduleId = editor.querySelector('[data-field="new-module"]')?.value || 'overview';
         const selectedKind = editor.querySelector('[data-field="new-kind"]')?.value || 'green';
-        const kind = moduleId === 'section'
-            ? 'section'
-            : (isSubsectionModule(moduleId) ? 'green' : (selectedKind === 'section' ? 'section' : selectedKind));
-        const rawComment = editor.querySelector('[data-field="new-comment"]')?.value.trim() || '新资料节点';
+        const rawComment = editor.querySelector('[data-field="new-comment"]')?.value.trim() || '\u65b0\u8d44\u6599\u8282\u70b9';
         const content = editor.querySelector('[data-field="new-content"]')?.value ?? '';
-        const keys = splitKeys(editor.querySelector('[data-field="new-keys"]')?.value ?? '');
-        const uid = nextUid(book);
-        const template = findEntry(book, templateUid(moduleId, kind)) || Object.values(book.entries ?? {})[0] || {};
-        const entry = clone(template);
-        const subsection = parseSubsectionModule(moduleId);
-        entry.displayIndex = maxDisplayIndex(book) + 1;
-        if (entry.extensions) entry.extensions.display_index = entry.displayIndex;
-        setEntryShape(entry, { uid, moduleId, kind, comment: rawComment, content, keys });
-        const snapshot = clone(book);
-        try {
-            if (Array.isArray(book.entries)) book.entries.push(entry);
-            else book.entries[String(uid)] = entry;
-            if (Array.isArray(book.originalData?.entries)) {
-                const legacy = clone(entry);
-                legacy.id = Number(uid);
-                legacy.keys = kind === 'green' ? keys : [];
-                legacy.enabled = true;
-                legacy.position = 'before_char';
-                legacy.insertion_order = orderFor(moduleId, kind);
-                book.originalData.entries.push(legacy);
-            }
-            setStatus('正在创建节点...');
-            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
-            if (subsection && kind === 'green') setEntryPlacement(uid, subsection.parentModuleId, subsection.title);
-            setStatus(`节点 #${uid} 已创建`);
-            await refreshTree(true);
-            await renderEditor(uid);
-        } catch (error) {
-            Object.assign(book, snapshot);
-            setStatus('创建节点失败', 'error');
-            console.error('[绿茵世界书管理器] 创建节点失败', error);
-        }
+        const keyText = editor.querySelector('[data-field="new-keys"]')?.value ?? '';
+        await actions.createEntry({ moduleId, selectedKind, rawComment, content, keyText });
     }
 
 
     async function deleteEntryByUid(uid) {
-        const targetUid = uidKey(uid);
-        if (!targetUid) return;
-        const book = await store.load();
-        const entry = findEntry(book, targetUid);
-        if (!entry) throw new Error(`Entry not found: ${targetUid}`);
-        if (nodeKind(entry) === 'tag') {
-            setStatus('结构标签不能删除', 'error');
-            return;
-        }
-        const title = String(entry.comment ?? `#${targetUid}`);
-        const childEntries = moduleFromComment(entry.comment) === 'section'
-            ? Object.values(book?.entries ?? {}).filter(item => moduleFromComment(item?.comment) === `section:${targetUid}`)
-            : [];
-        const message = childEntries.length
-            ? `确定删除「${title}」以及它下面的 ${childEntries.length} 个子条目吗？`
-            : `确定删除「${title}」吗？`;
-        if (!hostWindow.confirm(message)) return;
-        const snapshot = clone(book);
-        try {
-            removeEntryByUid(book, targetUid);
-            removeEntryPlacement(targetUid);
-            childEntries.forEach(item => {
-                removeEntryByUid(book, item?.uid ?? item?.id);
-                removeEntryPlacement(item?.uid ?? item?.id);
-            });
-            setStatus('正在删除节点...');
-            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
-            const deletedCount = childEntries.length + 1;
-            if (activeUid === targetUid) {
-                activeUid = '';
-                editor.innerHTML = `<div class="glbc-editor-empty">已删除 ${deletedCount} 个节点。</div>`;
-            }
-            setStatus(`已删除 ${deletedCount} 个节点`);
-            await refreshTree(true);
-        } catch (error) {
-            Object.assign(book, snapshot);
-            setStatus('删除节点失败', 'error');
-            console.error('[绿茵世界书管理器] 删除节点失败', error);
-        }
+        await actions.deleteEntryByUid(uid);
     }
 
     async function deleteActiveEntry() {
@@ -1044,26 +682,10 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
 
     async function saveActiveEntry() {
         if (!activeUid) return;
-        const book = await store.load();
-        const entry = findEntry(book, activeUid);
-        if (!entry) throw new Error(`Entry not found: ${activeUid}`);
         const comment = editor.querySelector('[data-field="comment"]')?.value ?? '';
         const content = editor.querySelector('[data-field="content"]')?.value ?? '';
-        const keys = splitKeys(editor.querySelector('[data-field="keys"]')?.value ?? '');
-        const snapshot = clone(book);
-        try {
-            updateEntryFields(entry, comment, content, keys);
-            const legacy = findLegacyEntry(book, activeUid);
-            if (legacy) updateEntryFields(legacy, comment, content, keys);
-            setStatus('正在保存节点...');
-            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
-            setStatus('节点已保存');
-            await refreshTree(true);
-        } catch (error) {
-            Object.assign(book, snapshot);
-            setStatus('节点保存失败', 'error');
-            console.error('[绿茵世界书管理器] 节点保存失败', error);
-        }
+        const keyText = editor.querySelector('[data-field="keys"]')?.value ?? '';
+        await actions.saveActiveEntry({ uid: activeUid, comment, content, keyText });
     }
 
     function positionPanel() {
@@ -1165,6 +787,22 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         extensionsMenu.append(container);
     }
 
+    actions = createGreenLoreBookActions({
+        store,
+        treeState,
+        getSaveWorldInfo,
+        canHaveSubsections,
+        modulePrefix,
+        defaultSubsectionTitle,
+        confirm: message => hostWindow.confirm(message),
+        setStatus,
+        refreshTree,
+        renderEditor,
+        getActiveUid: () => activeUid,
+        setActiveUid: value => { activeUid = value; },
+        setEditorHtml: html => { editor.innerHTML = html; },
+    });
+
     panel.addEventListener('click', event => {
         const button = event.target.closest('[data-action]');
         if (!button || !panel.contains(button)) return;
@@ -1172,10 +810,15 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             event.preventDefault();
             event.stopPropagation();
         }
+        if (button.classList.contains('glbc-group-add') || button.classList.contains('glbc-group-remove')) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
         const action = button.dataset.action;
         if (action === 'close') closePanel();
         else if (action === 'refresh') void refreshTree(true);
         else if (action === 'group') {
+            if (Date.now() < suppressGroupClickUntil) return;
             const group = button.closest('.glbc-tree-group');
             group.dataset.open = String(group.dataset.open !== 'true');
         } else if (action === 'toggle') void toggleOne(button);
@@ -1238,8 +881,8 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         if (!draggedEntryUid && !draggedSubsectionModuleId) return;
         const group = dragTargetGroup(event.target);
         if (!group) return;
-        if (draggedSubsectionModuleId && (!canHaveSubsections(group.dataset.groupId) || isSubsectionModule(group.dataset.groupId))) return;
-        if (draggedSubsectionModuleId && group.dataset.groupId === parseSubsectionModule(draggedSubsectionModuleId)?.parentModuleId) return;
+        if (draggedSubsectionModuleId && group.dataset.groupId === draggedSubsectionModuleId) return;
+        if (draggedSubsectionModuleId && !canHaveSubsections(isSubsectionModule(group.dataset.groupId) ? parseSubsectionModule(group.dataset.groupId)?.parentModuleId : group.dataset.groupId)) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
         treeHost.querySelectorAll('.glbc-tree-group.is-drag-over').forEach(item => {
@@ -1261,8 +904,11 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const targetModuleId = group.dataset.groupId;
         if (draggedSubsectionModuleId) {
             const sourceModuleId = draggedSubsectionModuleId;
+            const targetSubsection = parseSubsectionModule(targetModuleId);
+            const rect = group.getBoundingClientRect();
+            const insertAfter = Boolean(targetSubsection && event.clientY > rect.top + rect.height / 2);
             clearDragState();
-            void moveSubsectionToParent(sourceModuleId, targetModuleId);
+            void moveSubsectionToParent(sourceModuleId, targetSubsection?.parentModuleId || targetModuleId, targetSubsection?.title || '', insertAfter);
             return;
         }
         const subsection = parseSubsectionModule(targetModuleId);
@@ -1350,3 +996,6 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         hostDocument.querySelectorAll(`[data-glbc-owner="${scriptId}"]`).forEach(node => node.remove());
     };
 })();
+
+
+
