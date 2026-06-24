@@ -201,7 +201,7 @@ export function setEntryShape(entry, { uid, moduleId, kind, comment, content, ke
     const prefix = kind === 'section'
         ? MODULES.section.prefix
         : (isSectionModule(shapeModuleId) ? `[${shapeModuleId}]` : (MODULES[shapeModuleId]?.prefix ?? MODULES.rules.prefix));
-    const subsectionPrefix = subsection && kind === 'green' ? `[subsection:${subsection.title}]` : '';
+    const subsectionPrefix = '';
     entry.comment = String(comment ?? '').startsWith(`${prefix}${subsectionPrefix}`)
         ? comment
         : `${prefix}${subsectionPrefix}${rawComment || '新资料节点'}`;
