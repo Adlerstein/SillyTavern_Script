@@ -42,9 +42,9 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         .glbc-body{min-height:0;display:grid;grid-template-columns:minmax(390px,44%) minmax(0,1fr)}
         .glbc-tree{min-height:0;overflow:auto;padding:12px 10px 12px 12px;border-right:1px solid var(--border)}.glbc-editor{min-height:0;display:grid;grid-template-rows:none;align-content:start;overflow:auto;padding:12px;gap:10px}
         .glbc-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:10px}.glbc-search{width:100%;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:0 10px}
-        .glbc-tree-group{margin:0 0 8px}.glbc-tree-head{width:100%;min-height:42px;display:grid;grid-template-columns:28px minmax(0,1fr) 30px 30px auto;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--surface);text-align:left}.glbc-tree-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--group-color) 18%,transparent);color:var(--group-color);font-weight:700}.glbc-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-group-add,.glbc-group-remove{width:28px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;font-weight:700}.glbc-group-add.is-subsection-add{font-size:13px}.glbc-group-remove{color:#ffb4b4}.glbc-group-remove[hidden]{display:none}.glbc-tree-group[data-open=false]>.glbc-tree-children{display:none}.glbc-tree-group[data-open=true]>.glbc-tree-head .glbc-chevron{transform:rotate(90deg)}.glbc-chevron{transition:transform 160ms ease;color:var(--muted)}.glbc-tree-group.is-drag-over>.glbc-tree-head{outline:2px solid var(--accent);outline-offset:1px}
+        .glbc-tree-group{margin:0 0 8px}.glbc-tree-head{width:100%;min-height:42px;display:grid;grid-template-columns:28px minmax(0,1fr) auto auto auto;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;background:var(--surface);text-align:left}.glbc-tree-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--group-color) 18%,transparent);color:var(--group-color);font-weight:700}.glbc-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-group-add,.glbc-group-remove{width:28px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;font-weight:700}.glbc-group-add.is-subsection-add{font-size:13px}.glbc-group-remove{color:#ffb4b4}.glbc-group-remove[hidden]{display:none}.glbc-tree-group[data-open=false]>.glbc-tree-children{display:none}.glbc-tree-group[data-open=true]>.glbc-tree-head .glbc-chevron{transform:rotate(90deg)}.glbc-chevron{transition:transform 160ms ease;color:var(--muted)}.glbc-tree-group.is-drag-over>.glbc-tree-head{outline:2px solid var(--accent);outline-offset:1px}
         .glbc-tree-children{margin-left:10px;padding-left:11px;border-left:1px solid var(--border)}.glbc-tree-row{--level-indent:0px;--kind-indent:0px;min-height:40px;display:grid;grid-template-columns:14px minmax(0,1fr) 122px;align-items:center;column-gap:9px;margin-left:var(--level-indent);padding:5px 6px 5px calc(6px + var(--kind-indent));border-radius:9px}.glbc-tree-row[hidden]{display:none}.glbc-tree-row[draggable=true]{cursor:grab}.glbc-tree-row.is-dragging{opacity:.55}.glbc-tree-row.is-active{background:color-mix(in srgb,var(--accent) 24%,transparent)}.glbc-node-dot{width:9px;height:9px;border-radius:50%;background:var(--muted);justify-self:center}.glbc-node-dot.is-blue{background:#60a5fa}.glbc-node-dot.is-green{background:#22c55e}.glbc-node-dot.is-tag{background:#f59e0b}.glbc-row-title{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.32;word-break:break-word}.glbc-node-meta{color:var(--muted);font-size:11px;white-space:nowrap}.glbc-row-actions{width:122px;display:grid;grid-template-columns:30px 30px 48px;align-items:center;justify-content:end;gap:7px}
-        .glbc-tree-group.is-virtual-subsection>.glbc-tree-head{min-height:36px;background:color-mix(in srgb,var(--surface) 72%,transparent);grid-template-columns:24px minmax(0,1fr) 30px 30px auto}.glbc-tree-group.is-virtual-subsection .glbc-tree-icon{width:22px;height:22px;font-size:12px}.glbc-tree-group.is-virtual-subsection .glbc-tree-name{font-size:13px;color:var(--muted)}
+        .glbc-tree-group.is-virtual-subsection>.glbc-tree-head{min-height:36px;background:color-mix(in srgb,var(--surface) 72%,transparent);grid-template-columns:24px minmax(0,1fr) auto auto auto}.glbc-tree-group.is-virtual-subsection .glbc-tree-icon{width:22px;height:22px;font-size:12px}.glbc-tree-group.is-virtual-subsection .glbc-tree-name{font-size:13px;color:var(--muted)}
         .glbc-tree-name.is-inline-editing{display:block;width:100%;height:30px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--text);padding:4px 7px;font:13px/1.35 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}
         .glbc-row-title.is-inline-editing{display:block;width:100%;min-width:0;height:30px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--text);padding:4px 7px;font:13px/1.35 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}
         .glbc-tree-row.is-tag-node{--kind-indent:0px}.glbc-tree-row.is-blue-node{--kind-indent:14px}.glbc-tree-row.is-green-node{--kind-indent:28px}
@@ -264,12 +264,12 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             const subsection = parseSubsectionModule(node.id);
             addButton.classList.add('is-subsection-add');
             addButton.title = '在此二级标题下新建三级条目';
-            addButton.textContent = '三';
+            addButton.textContent = '＋';
             if (subsection?.title && subsection.title !== defaultSubsectionTitle) removeButton.hidden = false;
         } else if (canHaveSubsections(node.id)) {
             addButton.dataset.action = 'new-subsection';
             addButton.title = '在此一级标题下新建二级标题';
-            addButton.textContent = '二';
+            addButton.textContent = '＋';
         }
         head.querySelector('.glbc-tree-icon').textContent = node.icon;
         head.querySelector('.glbc-tree-name').textContent = node.label;
@@ -690,12 +690,16 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     async function renameSubsection(moduleId, nextTitle) {
         const subsection = parseSubsectionModule(moduleId);
         const cleanTitle = String(nextTitle ?? '').trim();
-        if (!subsection?.parentModuleId || !subsection.title || subsection.title === defaultSubsectionTitle || !cleanTitle || cleanTitle === subsection.title) {
+        if (!subsection?.parentModuleId || !subsection.title || !cleanTitle || cleanTitle === subsection.title) {
             return;
         }
         const book = await store.load();
-        const affected = Object.values(book?.entries ?? {})
-            .filter(entry => {
+        const affected = subsection.title === defaultSubsectionTitle
+            ? Object.values(book?.entries ?? {}).filter(entry => {
+                const moduleId = moduleFromComment(entry?.comment);
+                return moduleId === subsection.parentModuleId && nodeKind(entry) === 'green' && !subsectionFromComment(entry?.comment);
+            })
+            : Object.values(book?.entries ?? {}).filter(entry => {
                 const current = subsectionFromComment(entry?.comment);
                 return current?.parentModuleId === subsection.parentModuleId && current.title === subsection.title;
             });
@@ -708,7 +712,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
                 const legacy = findLegacyEntry(book, uid);
                 if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
             }
-            removeConfiguredSubsection(subsection.parentModuleId, subsection.title);
+            if (subsection.title !== defaultSubsectionTitle) removeConfiguredSubsection(subsection.parentModuleId, subsection.title);
             addConfiguredSubsection(subsection.parentModuleId, cleanTitle);
             setStatus('正在重命名二级标题...');
             await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
@@ -778,7 +782,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     function startInlineGroupRename(group) {
         if (!group || group.querySelector('.glbc-tree-name.is-inline-editing')) return;
         const moduleId = group.dataset.groupId;
-        const canRenameSubsection = isSubsectionModule(moduleId) && parseSubsectionModule(moduleId)?.title !== defaultSubsectionTitle;
+        const canRenameSubsection = isSubsectionModule(moduleId);
         const canRenameSection = group.classList.contains('is-dynamic-section');
         if (!canRenameSubsection && !canRenameSection) return;
         const nameNode = group.querySelector(':scope > .glbc-tree-head .glbc-tree-name');
