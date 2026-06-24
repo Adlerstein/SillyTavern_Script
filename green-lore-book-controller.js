@@ -38,18 +38,20 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         .glbc-panel{position:fixed;width:min(980px,calc(100vw - 24px));height:min(760px,calc(100vh - 24px));display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;border:1px solid var(--border);border-radius:16px;background:var(--bg);box-shadow:0 18px 60px rgb(0 0 0 / 38%);pointer-events:auto;backdrop-filter:blur(18px);z-index:2147483646}
         .glbc-panel[hidden]{display:none}
         .glbc-header,.glbc-footer{display:flex;align-items:center;gap:10px;padding:12px 14px}.glbc-header{border-bottom:1px solid var(--border)}.glbc-footer{min-height:42px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}.glbc-title{min-width:0;flex:1}.glbc-title strong,.glbc-title span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-title span{color:var(--muted);font-size:12px}
-        .glbc-icon-button,.glbc-action,.glbc-switch,.glbc-tree-head,.glbc-edit-button,.glbc-group-add{border:0;color:inherit;font:inherit;cursor:pointer}.glbc-icon-button{width:38px;height:38px;border-radius:10px;background:transparent;font-size:20px}.glbc-icon-button:hover,.glbc-action:hover,.glbc-tree-row:hover,.glbc-edit-button:hover,.glbc-group-add:hover{background:var(--hover)}.glbc-action.danger{background:color-mix(in srgb,#ef4444 22%,var(--hover));color:#ffb4b4}.glbc-action.danger:hover{background:color-mix(in srgb,#ef4444 34%,var(--hover))}
+        .glbc-icon-button,.glbc-action,.glbc-switch,.glbc-tree-head,.glbc-edit-button,.glbc-group-add,.glbc-group-remove{border:0;color:inherit;font:inherit;cursor:pointer}.glbc-icon-button{width:38px;height:38px;border-radius:10px;background:transparent;font-size:20px}.glbc-icon-button:hover,.glbc-action:hover,.glbc-tree-row:hover,.glbc-edit-button:hover,.glbc-group-add:hover,.glbc-group-remove:hover{background:var(--hover)}.glbc-action.danger{background:color-mix(in srgb,#ef4444 22%,var(--hover));color:#ffb4b4}.glbc-action.danger:hover{background:color-mix(in srgb,#ef4444 34%,var(--hover))}
         .glbc-body{min-height:0;display:grid;grid-template-columns:minmax(390px,44%) minmax(0,1fr)}
         .glbc-tree{min-height:0;overflow:auto;padding:12px 10px 12px 12px;border-right:1px solid var(--border)}.glbc-editor{min-height:0;display:grid;grid-template-rows:none;align-content:start;overflow:auto;padding:12px;gap:10px}
         .glbc-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:10px}.glbc-search{width:100%;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:0 10px}
-        .glbc-tree-group{margin:0 0 8px}.glbc-tree-head{width:100%;min-height:42px;display:grid;grid-template-columns:28px minmax(0,1fr) 30px auto;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--surface);text-align:left}.glbc-tree-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--group-color) 18%,transparent);color:var(--group-color);font-weight:700}.glbc-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-group-add{width:28px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;font-weight:700}.glbc-group-add.is-subsection-add{font-size:13px}.glbc-tree-group[data-open=false]>.glbc-tree-children{display:none}.glbc-tree-group[data-open=true]>.glbc-tree-head .glbc-chevron{transform:rotate(90deg)}.glbc-chevron{transition:transform 160ms ease;color:var(--muted)}.glbc-tree-group.is-drag-over>.glbc-tree-head{outline:2px solid var(--accent);outline-offset:1px}
-        .glbc-tree-children{margin-left:10px;padding-left:11px;border-left:1px solid var(--border)}.glbc-tree-row{--level-indent:0px;--kind-indent:0px;min-height:40px;display:grid;grid-template-columns:14px minmax(0,1fr) 86px;align-items:center;column-gap:9px;margin-left:var(--level-indent);padding:5px 6px 5px calc(6px + var(--kind-indent));border-radius:9px}.glbc-tree-row[hidden]{display:none}.glbc-tree-row[draggable=true]{cursor:grab}.glbc-tree-row.is-dragging{opacity:.55}.glbc-tree-row.is-active{background:color-mix(in srgb,var(--accent) 24%,transparent)}.glbc-node-dot{width:9px;height:9px;border-radius:50%;background:var(--muted);justify-self:center}.glbc-node-dot.is-blue{background:#60a5fa}.glbc-node-dot.is-green{background:#22c55e}.glbc-node-dot.is-tag{background:#f59e0b}.glbc-row-title{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.32;word-break:break-word}.glbc-node-meta{color:var(--muted);font-size:11px;white-space:nowrap}.glbc-row-actions{width:86px;display:grid;grid-template-columns:30px 48px;align-items:center;justify-content:end;gap:8px}
-        .glbc-tree-group.is-virtual-subsection>.glbc-tree-head{min-height:36px;background:color-mix(in srgb,var(--surface) 72%,transparent);grid-template-columns:24px minmax(0,1fr) 30px auto}.glbc-tree-group.is-virtual-subsection .glbc-tree-icon{width:22px;height:22px;font-size:12px}.glbc-tree-group.is-virtual-subsection .glbc-tree-name{font-size:13px;color:var(--muted)}
+        .glbc-tree-group{margin:0 0 8px}.glbc-tree-head{width:100%;min-height:42px;display:grid;grid-template-columns:28px minmax(0,1fr) 30px 30px auto;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--surface);text-align:left}.glbc-tree-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--group-color) 18%,transparent);color:var(--group-color);font-weight:700}.glbc-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-group-add,.glbc-group-remove{width:28px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;font-weight:700}.glbc-group-add.is-subsection-add{font-size:13px}.glbc-group-remove{color:#ffb4b4}.glbc-group-remove[hidden]{display:none}.glbc-tree-group[data-open=false]>.glbc-tree-children{display:none}.glbc-tree-group[data-open=true]>.glbc-tree-head .glbc-chevron{transform:rotate(90deg)}.glbc-chevron{transition:transform 160ms ease;color:var(--muted)}.glbc-tree-group.is-drag-over>.glbc-tree-head{outline:2px solid var(--accent);outline-offset:1px}
+        .glbc-tree-children{margin-left:10px;padding-left:11px;border-left:1px solid var(--border)}.glbc-tree-row{--level-indent:0px;--kind-indent:0px;min-height:40px;display:grid;grid-template-columns:14px minmax(0,1fr) 122px;align-items:center;column-gap:9px;margin-left:var(--level-indent);padding:5px 6px 5px calc(6px + var(--kind-indent));border-radius:9px}.glbc-tree-row[hidden]{display:none}.glbc-tree-row[draggable=true]{cursor:grab}.glbc-tree-row.is-dragging{opacity:.55}.glbc-tree-row.is-active{background:color-mix(in srgb,var(--accent) 24%,transparent)}.glbc-node-dot{width:9px;height:9px;border-radius:50%;background:var(--muted);justify-self:center}.glbc-node-dot.is-blue{background:#60a5fa}.glbc-node-dot.is-green{background:#22c55e}.glbc-node-dot.is-tag{background:#f59e0b}.glbc-row-title{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.32;word-break:break-word}.glbc-node-meta{color:var(--muted);font-size:11px;white-space:nowrap}.glbc-row-actions{width:122px;display:grid;grid-template-columns:30px 30px 48px;align-items:center;justify-content:end;gap:7px}
+        .glbc-tree-group.is-virtual-subsection>.glbc-tree-head{min-height:36px;background:color-mix(in srgb,var(--surface) 72%,transparent);grid-template-columns:24px minmax(0,1fr) 30px 30px auto}.glbc-tree-group.is-virtual-subsection .glbc-tree-icon{width:22px;height:22px;font-size:12px}.glbc-tree-group.is-virtual-subsection .glbc-tree-name{font-size:13px;color:var(--muted)}
+        .glbc-tree-name.is-inline-editing{display:block;width:100%;height:30px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--text);padding:4px 7px;font:13px/1.35 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}
+        .glbc-row-title.is-inline-editing{display:block;width:100%;min-width:0;height:30px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--text);padding:4px 7px;font:13px/1.35 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}
         .glbc-tree-row.is-tag-node{--kind-indent:0px}.glbc-tree-row.is-blue-node{--kind-indent:14px}.glbc-tree-row.is-green-node{--kind-indent:28px}
         .glbc-switch{position:relative;width:46px;height:26px;flex:0 0 auto;border-radius:999px;background:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);transition:background 130ms ease}.glbc-switch::after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgb(0 0 0 / 28%);transition:transform 130ms ease}.glbc-switch[aria-checked=true]{background:var(--accent)}.glbc-switch[aria-checked=true]::after{transform:translateX(20px)}.glbc-switch[data-state=unknown]{background:#a56c32}.glbc-switch:disabled,.glbc-action:disabled{cursor:wait;opacity:.55}
-        .glbc-edit-button{width:30px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center}
+        .glbc-edit-button{width:30px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center}.glbc-edit-button.danger{color:#ffb4b4}.glbc-edit-button[hidden]{display:none}
         .glbc-editor-empty{height:100%;display:grid;place-items:center;color:var(--muted);text-align:center}.glbc-form-row{display:grid;gap:5px;min-width:0}.glbc-form-row label{color:var(--muted);font-size:12px}.glbc-input,.glbc-select,.glbc-textarea{width:100%;min-width:0;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:8px 10px;font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace}.glbc-textarea{height:clamp(180px,36vh,320px);min-height:180px;resize:vertical}.glbc-editor-flags{display:flex;gap:8px 10px;color:var(--muted);font-size:12px;flex-wrap:wrap}.glbc-editor-flags span{min-width:0}.glbc-editor-actions{display:flex;gap:8px;justify-content:flex-end}.glbc-action{min-height:34px;padding:0 12px;border-radius:9px;background:var(--hover)}.glbc-action.primary{background:var(--accent);color:#fff}.glbc-status{flex:1}.glbc-status[data-kind=error]{color:#ff8d8d}
-        @media(max-width:760px){.glbc-launcher{right:16px!important;bottom:18px!important;left:auto!important;top:auto!important;width:58px;height:58px;touch-action:manipulation}.glbc-panel{left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100vw!important;height:min(88vh,760px);height:min(88dvh,760px);max-height:calc(100vh - 8px);border-width:1px 0 0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom);transform:translateZ(0)}.glbc-body{grid-template-columns:1fr;grid-template-rows:46% 54%}.glbc-tree{border-right:0;border-bottom:1px solid var(--border);padding:10px}.glbc-tree-row{grid-template-columns:14px minmax(0,1fr) 84px}.glbc-tree-row.is-blue-node{--kind-indent:10px}.glbc-tree-row.is-green-node{--kind-indent:20px}.glbc-row-actions{width:84px;grid-template-columns:28px 46px;gap:7px}}
+        @media(max-width:760px){.glbc-launcher{right:16px!important;bottom:18px!important;left:auto!important;top:auto!important;width:58px;height:58px;touch-action:manipulation}.glbc-panel{left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100vw!important;height:min(88vh,760px);height:min(88dvh,760px);max-height:calc(100vh - 8px);border-width:1px 0 0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom);transform:translateZ(0)}.glbc-body{grid-template-columns:1fr;grid-template-rows:46% 54%}.glbc-tree{border-right:0;border-bottom:1px solid var(--border);padding:10px}.glbc-tree-row{grid-template-columns:14px minmax(0,1fr) 116px}.glbc-tree-row.is-blue-node{--kind-indent:10px}.glbc-tree-row.is-green-node{--kind-indent:20px}.glbc-row-actions{width:116px;grid-template-columns:28px 28px 46px;gap:7px}}
         .glbc-root[data-compact=true] .glbc-launcher{display:none}
         .glbc-root[data-compact=true] .glbc-panel{border-width:1px 0 0;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom)}
         .glbc-root[data-compact=true] .glbc-body{grid-template-columns:1fr;grid-template-rows:46% 54%}
@@ -154,6 +156,17 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         return true;
     }
 
+    function removeConfiguredSubsection(parentModuleId, title) {
+        const key = uidKey(parentModuleId);
+        const cleanTitle = String(title ?? '').trim();
+        if (!key || !cleanTitle) return;
+        const config = readSubsectionConfig();
+        const items = Array.isArray(config[key]) ? config[key].filter(item => item !== cleanTitle) : [];
+        if (items.length) config[key] = items;
+        else delete config[key];
+        writeSubsectionConfig(config);
+    }
+
     function dragTargetGroup(target) {
         const group = target?.closest?.('.glbc-tree-group');
         if (!group) return null;
@@ -203,6 +216,16 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         }
     }
 
+    function insertGroupBeforeModuleEnd(parentModuleId, group) {
+        const parentBody = groupBodyByModule(parentModuleId);
+        if (!parentBody) return;
+        const endUids = endUidsForModule(parentModuleId);
+        const endRow = [...parentBody.querySelectorAll(':scope > .glbc-tree-row')]
+            .find(item => item.dataset.uid && endUids.includes(item.dataset.uid));
+        if (endRow) parentBody.insertBefore(group, endRow);
+        else parentBody.append(group);
+    }
+
     function makeSwitch(uid) {
         const button = element('button', 'glbc-switch');
         button.type = 'button';
@@ -220,7 +243,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         row.dataset.uid = String(uid);
         row.dataset.label = fallbackLabel;
         row.style.setProperty('--level-indent', `${level * 2}px`);
-        row.innerHTML = `<span class="glbc-node-dot"></span><span class="glbc-row-title"></span><span class="glbc-row-actions"><button class="glbc-edit-button" type="button" data-action="edit" data-uid="${uid}" title="编辑">✎</button></span>`;
+        row.innerHTML = `<span class="glbc-node-dot"></span><span class="glbc-row-title"></span><span class="glbc-row-actions"><button class="glbc-edit-button" type="button" data-action="edit" data-uid="${uid}" title="编辑">✎</button><button class="glbc-edit-button danger" type="button" data-action="delete-entry" data-uid="${uid}" title="删除" hidden>×</button></span>`;
         row.querySelector('.glbc-row-actions').append(makeSwitch(uid));
         row.querySelector('.glbc-row-title').textContent = fallbackLabel;
         return row;
@@ -234,12 +257,15 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const head = element('button', 'glbc-tree-head');
         head.type = 'button';
         head.dataset.action = 'group';
-        head.innerHTML = `<span class="glbc-tree-icon"></span><span class="glbc-tree-name"></span><span class="glbc-group-add" role="button" tabindex="0" data-action="new-entry" data-module="${node.id}" title="在此分组新建">＋</span><span class="glbc-chevron">›</span>`;
+        head.innerHTML = `<span class="glbc-tree-icon"></span><span class="glbc-tree-name"></span><span class="glbc-group-add" role="button" tabindex="0" data-action="new-entry" data-module="${node.id}" title="在此分组新建">＋</span><span class="glbc-group-remove" role="button" tabindex="0" data-action="delete-subsection" data-module="${node.id}" title="删除这个二级标题" hidden>×</span><span class="glbc-chevron">›</span>`;
         const addButton = head.querySelector('.glbc-group-add');
+        const removeButton = head.querySelector('.glbc-group-remove');
         if (isSubsectionModule(node.id)) {
+            const subsection = parseSubsectionModule(node.id);
             addButton.classList.add('is-subsection-add');
             addButton.title = '在此二级标题下新建三级条目';
             addButton.textContent = '三';
+            if (subsection?.title && subsection.title !== defaultSubsectionTitle) removeButton.hidden = false;
         } else if (canHaveSubsections(node.id)) {
             addButton.dataset.action = 'new-subsection';
             addButton.title = '在此一级标题下新建二级标题';
@@ -306,9 +332,8 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const moduleId = subsectionModuleId(parentModuleId, title);
         let body = groupBodyByModule(moduleId);
         if (body) return body;
-        const parentBody = groupBodyByModule(parentModuleId);
-        if (!parentBody) return null;
-        parentBody.append(makeVirtualSubsectionGroup({ parentModuleId, title }, isSectionModule(parentModuleId) ? 2 : 1));
+        if (!groupBodyByModule(parentModuleId)) return null;
+        insertGroupBeforeModuleEnd(parentModuleId, makeVirtualSubsectionGroup({ parentModuleId, title }, isSectionModule(parentModuleId) ? 2 : 1));
         return groupBodyByModule(moduleId);
     }
 
@@ -373,7 +398,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             const parentBody = groupBodyByModule(parentModuleId);
             if (!parentBody) continue;
             for (const title of collectModuleSubsections(entries, parentModuleId)) {
-                parentBody.append(makeVirtualSubsectionGroup({ parentModuleId, title }, isSectionModule(parentModuleId) ? 2 : 1));
+                insertGroupBeforeModuleEnd(parentModuleId, makeVirtualSubsectionGroup({ parentModuleId, title }, isSectionModule(parentModuleId) ? 2 : 1));
             }
         }
         for (const entry of entries) {
@@ -412,6 +437,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         });
         try {
             const book = await store.load({ force });
+            buildTree();
             syncDynamicRows(book);
             const rows = [...treeHost.querySelectorAll('.glbc-tree-row')];
             const switches = rows.map(row => row.querySelector('.glbc-switch'));
@@ -419,6 +445,10 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             rows.forEach(row => {
                 const uid = row.dataset.uid;
                 const entry = findEntry(book, uid);
+                if (!entry) {
+                    row.remove();
+                    return;
+                }
                 const title = entry?.comment || row.dataset.label || uid;
                 const kind = nodeKind(entry);
                 const dot = row.querySelector('.glbc-node-dot');
@@ -428,6 +458,8 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
                 row.classList.toggle('is-green-node', kind === 'green');
                 row.draggable = kind === 'green';
                 row.title = kind === 'green' ? '拖到二级标题可归纳；拖到一级标题可移出二级标题' : '';
+                const deleteButton = row.querySelector('[data-action="delete-entry"]');
+                if (deleteButton) deleteButton.hidden = kind === 'tag';
                 dot.className = `glbc-node-dot is-${kind}`;
                 row.dataset.search = `${uid} ${title} ${entryKeys(entry).join(' ')} ${String(entry?.content ?? '').slice(0, 200)}`.toLowerCase();
                 const button = row.querySelector('.glbc-switch');
@@ -498,7 +530,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             treeHost.querySelectorAll('.glbc-tree-row').forEach(row => row.classList.toggle('is-active', row.dataset.uid === activeUid));
         }
         const kind = nodeKind(entry);
-        const canDelete = !STATIC_UIDS.has(uidKey(uid));
+        const canDelete = kind !== 'tag';
         editor.innerHTML = `
             <div class="glbc-form-row">
                 <label>节点标题</label>
@@ -621,6 +653,194 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         await refreshTree(false);
     }
 
+    async function deleteSubsection(button) {
+        const subsection = parseSubsectionModule(button.dataset.module);
+        if (!subsection?.parentModuleId || !subsection.title || subsection.title === defaultSubsectionTitle) return;
+        const book = await store.load();
+        const affected = Object.values(book?.entries ?? {})
+            .filter(entry => {
+                const current = subsectionFromComment(entry?.comment);
+                return current?.parentModuleId === subsection.parentModuleId && current.title === subsection.title;
+            });
+        const message = affected.length
+            ? `删除二级标题「${subsection.title}」？下面的 ${affected.length} 个绿灯条目会移到未分组三级标题，不会被删除。`
+            : `删除空二级标题「${subsection.title}」？`;
+        if (!hostWindow.confirm(message)) return;
+        const snapshot = clone(book);
+        try {
+            for (const entry of affected) {
+                const uid = uidKey(entry?.uid ?? entry?.id);
+                const nextComment = `${modulePrefix(subsection.parentModuleId)}${stripEntryPrefixes(entry.comment) || `节点 #${uid}`}`;
+                updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
+                const legacy = findLegacyEntry(book, uid);
+                if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
+            }
+            removeConfiguredSubsection(subsection.parentModuleId, subsection.title);
+            setStatus('正在删除二级标题...');
+            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
+            setStatus(`二级标题「${subsection.title}」已删除`);
+            await refreshTree(true);
+        } catch (error) {
+            Object.assign(book, snapshot);
+            setStatus('删除二级标题失败', 'error');
+            console.error('[绿茵世界书管理器] 删除二级标题失败', error);
+        }
+    }
+
+    async function renameSubsection(moduleId, nextTitle) {
+        const subsection = parseSubsectionModule(moduleId);
+        const cleanTitle = String(nextTitle ?? '').trim();
+        if (!subsection?.parentModuleId || !subsection.title || subsection.title === defaultSubsectionTitle || !cleanTitle || cleanTitle === subsection.title) {
+            return;
+        }
+        const book = await store.load();
+        const affected = Object.values(book?.entries ?? {})
+            .filter(entry => {
+                const current = subsectionFromComment(entry?.comment);
+                return current?.parentModuleId === subsection.parentModuleId && current.title === subsection.title;
+            });
+        const snapshot = clone(book);
+        try {
+            for (const entry of affected) {
+                const uid = uidKey(entry?.uid ?? entry?.id);
+                const nextComment = `${modulePrefix(subsection.parentModuleId)}[subsection:${cleanTitle}]${stripEntryPrefixes(entry.comment) || `节点 #${uid}`}`;
+                updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
+                const legacy = findLegacyEntry(book, uid);
+                if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
+            }
+            removeConfiguredSubsection(subsection.parentModuleId, subsection.title);
+            addConfiguredSubsection(subsection.parentModuleId, cleanTitle);
+            setStatus('正在重命名二级标题...');
+            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
+            setStatus(`二级标题已改为「${cleanTitle}」`);
+            await refreshTree(true);
+        } catch (error) {
+            Object.assign(book, snapshot);
+            setStatus('重命名二级标题失败', 'error');
+            console.error('[绿茵世界书管理器] 重命名二级标题失败', error);
+        }
+    }
+
+    async function renameDynamicSection(sectionUid, nextTitle) {
+        const cleanTitle = String(nextTitle ?? '').trim();
+        if (!sectionUid || !cleanTitle) return;
+        const book = await store.load();
+        const entry = findEntry(book, sectionUid);
+        if (!entry || moduleFromComment(entry.comment) !== 'section') return;
+        const nextComment = `[section]${cleanTitle}`;
+        const snapshot = clone(book);
+        try {
+            updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
+            const legacy = findLegacyEntry(book, sectionUid);
+            if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
+            setStatus('正在重命名一级标题...');
+            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
+            setStatus(`一级标题已改为「${cleanTitle}」`);
+            await refreshTree(true);
+            if (activeUid === String(sectionUid)) await renderEditor(sectionUid, false);
+        } catch (error) {
+            Object.assign(book, snapshot);
+            setStatus('重命名一级标题失败', 'error');
+            console.error('[绿茵世界书管理器] 重命名一级标题失败', error);
+        }
+    }
+
+    async function renameEntryTitle(uid, nextTitle) {
+        const targetUid = uidKey(uid);
+        const cleanTitle = String(nextTitle ?? '').trim();
+        if (!targetUid || !cleanTitle) return;
+        const book = await store.load();
+        const entry = findEntry(book, targetUid);
+        if (!entry || nodeKind(entry) === 'tag') return;
+        const moduleId = moduleFromComment(entry.comment);
+        const subsection = subsectionFromComment(entry.comment);
+        const parentModuleId = subsection?.parentModuleId || moduleId;
+        const nextComment = moduleId === 'section'
+            ? `[section]${cleanTitle}`
+            : `${modulePrefix(parentModuleId)}${subsection?.title ? `[subsection:${subsection.title}]` : ''}${cleanTitle}`;
+        const snapshot = clone(book);
+        try {
+            updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
+            const legacy = findLegacyEntry(book, targetUid);
+            if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
+            setStatus('正在重命名节点...');
+            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
+            setStatus(`节点已改为「${cleanTitle}」`);
+            await refreshTree(true);
+            if (activeUid === targetUid) await renderEditor(targetUid, false);
+        } catch (error) {
+            Object.assign(book, snapshot);
+            setStatus('重命名节点失败', 'error');
+            console.error('[绿茵世界书管理器] 重命名节点失败', error);
+        }
+    }
+
+    function startInlineGroupRename(group) {
+        if (!group || group.querySelector('.glbc-tree-name.is-inline-editing')) return;
+        const moduleId = group.dataset.groupId;
+        const canRenameSubsection = isSubsectionModule(moduleId) && parseSubsectionModule(moduleId)?.title !== defaultSubsectionTitle;
+        const canRenameSection = group.classList.contains('is-dynamic-section');
+        if (!canRenameSubsection && !canRenameSection) return;
+        const nameNode = group.querySelector(':scope > .glbc-tree-head .glbc-tree-name');
+        const oldTitle = nameNode?.textContent?.trim() ?? '';
+        if (!nameNode) return;
+        const input = element('input', 'glbc-tree-name is-inline-editing');
+        input.value = oldTitle;
+        input.dataset.originalTitle = oldTitle;
+        nameNode.replaceWith(input);
+        input.focus();
+        input.select();
+        let committed = false;
+        const finish = commit => {
+            if (committed) return;
+            committed = true;
+            const nextTitle = commit ? input.value.trim() : input.dataset.originalTitle;
+            const replacement = element('span', 'glbc-tree-name', nextTitle || input.dataset.originalTitle);
+            input.replaceWith(replacement);
+            if (!commit || !nextTitle || nextTitle === input.dataset.originalTitle) return;
+            if (canRenameSubsection) void renameSubsection(moduleId, nextTitle);
+            else if (canRenameSection) void renameDynamicSection(group.dataset.sectionUid, nextTitle);
+        };
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter') finish(true);
+            else if (event.key === 'Escape') finish(false);
+        }, { signal: events.signal });
+        input.addEventListener('blur', () => finish(true), { signal: events.signal });
+    }
+
+    async function startInlineRowRename(row) {
+        const uid = row?.dataset?.uid;
+        if (!uid || row.querySelector('.glbc-row-title.is-inline-editing')) return;
+        const book = await store.load();
+        const entry = findEntry(book, uid);
+        if (!entry || nodeKind(entry) === 'tag') return;
+        const titleNode = row.querySelector('.glbc-row-title');
+        if (!titleNode) return;
+        const oldTitle = stripEntryPrefixes(entry.comment) || String(entry.comment ?? row.dataset.label ?? uid);
+        const input = element('input', 'glbc-row-title is-inline-editing');
+        input.value = oldTitle;
+        input.dataset.originalTitle = oldTitle;
+        titleNode.replaceWith(input);
+        input.focus();
+        input.select();
+        let committed = false;
+        const finish = commit => {
+            if (committed) return;
+            committed = true;
+            const nextTitle = commit ? input.value.trim() : input.dataset.originalTitle;
+            const replacement = element('span', 'glbc-row-title');
+            replacement.append(element('span', '', String(entry.comment ?? input.dataset.originalTitle)), ' ', element('span', 'glbc-node-meta', `#${uid}`));
+            input.replaceWith(replacement);
+            if (!commit || !nextTitle || nextTitle === input.dataset.originalTitle) return;
+            void renameEntryTitle(uid, nextTitle);
+        };
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter') finish(true);
+            else if (event.key === 'Escape') finish(false);
+        }, { signal: events.signal });
+        input.addEventListener('blur', () => finish(true), { signal: events.signal });
+    }
+
 
 
 
@@ -668,14 +888,19 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     }
 
 
-    async function deleteActiveEntry() {
-        if (!activeUid || STATIC_UIDS.has(uidKey(activeUid))) return;
+    async function deleteEntryByUid(uid) {
+        const targetUid = uidKey(uid);
+        if (!targetUid) return;
         const book = await store.load();
-        const entry = findEntry(book, activeUid);
-        if (!entry) throw new Error(`Entry not found: ${activeUid}`);
-        const title = String(entry.comment ?? `#${activeUid}`);
+        const entry = findEntry(book, targetUid);
+        if (!entry) throw new Error(`Entry not found: ${targetUid}`);
+        if (nodeKind(entry) === 'tag') {
+            setStatus('结构标签不能删除', 'error');
+            return;
+        }
+        const title = String(entry.comment ?? `#${targetUid}`);
         const childEntries = moduleFromComment(entry.comment) === 'section'
-            ? Object.values(book?.entries ?? {}).filter(item => moduleFromComment(item?.comment) === `section:${activeUid}`)
+            ? Object.values(book?.entries ?? {}).filter(item => moduleFromComment(item?.comment) === `section:${targetUid}`)
             : [];
         const message = childEntries.length
             ? `确定删除「${title}」以及它下面的 ${childEntries.length} 个子条目吗？`
@@ -683,13 +908,15 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         if (!hostWindow.confirm(message)) return;
         const snapshot = clone(book);
         try {
-            removeEntryByUid(book, activeUid);
+            removeEntryByUid(book, targetUid);
             childEntries.forEach(item => removeEntryByUid(book, item?.uid ?? item?.id));
             setStatus('正在删除节点...');
             await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
             const deletedCount = childEntries.length + 1;
-            activeUid = '';
-            editor.innerHTML = `<div class="glbc-editor-empty">已删除 ${deletedCount} 个节点。</div>`;
+            if (activeUid === targetUid) {
+                activeUid = '';
+                editor.innerHTML = `<div class="glbc-editor-empty">已删除 ${deletedCount} 个节点。</div>`;
+            }
             setStatus(`已删除 ${deletedCount} 个节点`);
             await refreshTree(true);
         } catch (error) {
@@ -697,6 +924,10 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             setStatus('删除节点失败', 'error');
             console.error('[绿茵世界书管理器] 删除节点失败', error);
         }
+    }
+
+    async function deleteActiveEntry() {
+        await deleteEntryByUid(activeUid);
     }
 
     async function saveActiveEntry() {
@@ -838,12 +1069,32 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         } else if (action === 'toggle') void toggleOne(button);
         else if (action === 'edit') void renderEditor(button.dataset.uid);
         else if (action === 'save-entry') void saveActiveEntry();
-        else if (action === 'delete-entry') void deleteActiveEntry();
+        else if (action === 'delete-entry') void (button.dataset.uid ? deleteEntryByUid(button.dataset.uid) : deleteActiveEntry());
         else if (action === 'reload-entry') void renderEditor(activeUid);
         else if (action === 'new-entry') renderNewEntryForm(button.dataset.module);
         else if (action === 'new-subsection') renderNewSubsectionForm(button.dataset.module);
         else if (action === 'create-subsection') void createSubsection(button);
+        else if (action === 'delete-subsection') void deleteSubsection(button);
         else if (action === 'create-entry') void createEntry();
+    }, eventOptions);
+
+    panel.addEventListener('dblclick', event => {
+        const rowTitle = event.target.closest('.glbc-row-title');
+        if (rowTitle && panel.contains(rowTitle)) {
+            const row = rowTitle.closest('.glbc-tree-row');
+            if (!row) return;
+            event.preventDefault();
+            event.stopPropagation();
+            void startInlineRowRename(row);
+            return;
+        }
+        const nameNode = event.target.closest('.glbc-tree-name');
+        if (!nameNode || !panel.contains(nameNode)) return;
+        const group = nameNode.closest('.glbc-tree-group');
+        if (!group) return;
+        event.preventDefault();
+        event.stopPropagation();
+        startInlineGroupRename(group);
     }, eventOptions);
 
     panel.addEventListener('dragstart', event => {
