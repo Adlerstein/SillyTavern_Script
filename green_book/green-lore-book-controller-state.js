@@ -88,6 +88,19 @@ export function createGreenLoreBookTreeState({ storage, scriptId, bookFile, defa
         writePlacements(config);
     }
 
+    function removePlacementsForSubsection(parentModuleId, title) {
+        const parent = uidKey(parentModuleId);
+        const cleanTitle = String(title ?? '').trim();
+        if (!parent || !cleanTitle) return;
+        const config = readPlacements();
+        for (const [uid, placement] of Object.entries(config)) {
+            if (placement?.parentModuleId === parent && placement.title === cleanTitle) {
+                delete config[uid];
+            }
+        }
+        writePlacements(config);
+    }
+
     function placementForEntry(entry) {
         const uid = uidKey(entry?.uid ?? entry?.id);
         const placement = readPlacements()[uid];
@@ -99,7 +112,9 @@ export function createGreenLoreBookTreeState({ storage, scriptId, bookFile, defa
     function subsectionTitlesFor(parentModuleId, entries = []) {
         const parent = uidKey(parentModuleId);
         const titles = new Set(configuredSubsections(parent));
-        for (const placement of Object.values(readPlacements())) {
+        const existingUids = new Set(entries.map(entry => uidKey(entry?.uid ?? entry?.id)).filter(Boolean));
+        for (const [uid, placement] of Object.entries(readPlacements())) {
+            if (!existingUids.has(uidKey(uid))) continue;
             if (placement?.parentModuleId === parent && placement.title) titles.add(placement.title);
         }
         for (const entry of entries) {
@@ -116,6 +131,7 @@ export function createGreenLoreBookTreeState({ storage, scriptId, bookFile, defa
         removeSubsection,
         setPlacement,
         removePlacement,
+        removePlacementsForSubsection,
         placementForEntry,
         subsectionTitlesFor,
     };

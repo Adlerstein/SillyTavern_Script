@@ -135,6 +135,7 @@ export function createGreenLoreBookActions({
                 treeState.removePlacement(uid);
             }
             treeState.removeSubsection(subsection.parentModuleId, subsection.title);
+            treeState.removePlacementsForSubsection(subsection.parentModuleId, subsection.title);
             setStatus('正在删除二级标题...');
             await saveBook(book);
             setStatus(`二级标题「${subsection.title}」已删除`);
