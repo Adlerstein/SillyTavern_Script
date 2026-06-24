@@ -1,5 +1,5 @@
 import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/SillyTavern_Script@1bbded69af6fa712c5d376821c549ccf7d1d776d/lore-book-controller-store.js?v=20260614-4';
-import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry, findLegacyEntry, joinKeys, maxDisplayIndex, moduleFromComment, nextUid, nodeKind, orderFor, removeEntryByUid, setEntryShape, splitKeys, templateUid, uidKey, updateEntryFields } from './green-lore-book-controller-core.js?v=20260623-core1';
+import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry, findLegacyEntry, isSectionModule, isSubsectionModule, joinKeys, maxDisplayIndex, moduleFromComment, nextUid, nodeKind, orderFor, removeEntryByUid, sectionModuleId, setEntryShape, splitKeys, subsectionFromComment, subsectionModuleId, templateUid, uidKey, updateEntryFields } from './green-lore-book-controller-core.js?v=20260624-subsection1';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -42,8 +42,9 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         .glbc-body{min-height:0;display:grid;grid-template-columns:minmax(390px,44%) minmax(0,1fr)}
         .glbc-tree{min-height:0;overflow:auto;padding:12px 10px 12px 12px;border-right:1px solid var(--border)}.glbc-editor{min-height:0;display:grid;grid-template-rows:none;align-content:start;overflow:auto;padding:12px;gap:10px}
         .glbc-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:10px}.glbc-search{width:100%;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:0 10px}
-        .glbc-tree-group{margin:0 0 8px}.glbc-tree-head{width:100%;min-height:42px;display:grid;grid-template-columns:28px minmax(0,1fr) 30px auto;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--surface);text-align:left}.glbc-tree-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--group-color) 18%,transparent);color:var(--group-color);font-weight:700}.glbc-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-group-add{width:28px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;font-weight:700}.glbc-tree-group[data-open=false]>.glbc-tree-children{display:none}.glbc-tree-group[data-open=true]>.glbc-tree-head .glbc-chevron{transform:rotate(90deg)}.glbc-chevron{transition:transform 160ms ease;color:var(--muted)}
+        .glbc-tree-group{margin:0 0 8px}.glbc-tree-head{width:100%;min-height:42px;display:grid;grid-template-columns:28px minmax(0,1fr) 30px auto;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--surface);text-align:left}.glbc-tree-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--group-color) 18%,transparent);color:var(--group-color);font-weight:700}.glbc-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-group-add{width:28px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;font-weight:700}.glbc-group-add.is-subsection-add{font-size:13px}.glbc-tree-group[data-open=false]>.glbc-tree-children{display:none}.glbc-tree-group[data-open=true]>.glbc-tree-head .glbc-chevron{transform:rotate(90deg)}.glbc-chevron{transition:transform 160ms ease;color:var(--muted)}
         .glbc-tree-children{margin-left:10px;padding-left:11px;border-left:1px solid var(--border)}.glbc-tree-row{--level-indent:0px;--kind-indent:0px;min-height:40px;display:grid;grid-template-columns:14px minmax(0,1fr) 86px;align-items:center;column-gap:9px;margin-left:var(--level-indent);padding:5px 6px 5px calc(6px + var(--kind-indent));border-radius:9px}.glbc-tree-row[hidden]{display:none}.glbc-tree-row.is-active{background:color-mix(in srgb,var(--accent) 24%,transparent)}.glbc-node-dot{width:9px;height:9px;border-radius:50%;background:var(--muted);justify-self:center}.glbc-node-dot.is-blue{background:#60a5fa}.glbc-node-dot.is-green{background:#22c55e}.glbc-node-dot.is-tag{background:#f59e0b}.glbc-row-title{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.32;word-break:break-word}.glbc-node-meta{color:var(--muted);font-size:11px;white-space:nowrap}.glbc-row-actions{width:86px;display:grid;grid-template-columns:30px 48px;align-items:center;justify-content:end;gap:8px}
+        .glbc-tree-group.is-virtual-subsection>.glbc-tree-head{min-height:36px;background:color-mix(in srgb,var(--surface) 72%,transparent);grid-template-columns:24px minmax(0,1fr) 30px auto}.glbc-tree-group.is-virtual-subsection .glbc-tree-icon{width:22px;height:22px;font-size:12px}.glbc-tree-group.is-virtual-subsection .glbc-tree-name{font-size:13px;color:var(--muted)}
         .glbc-tree-row.is-tag-node{--kind-indent:0px}.glbc-tree-row.is-blue-node{--kind-indent:14px}.glbc-tree-row.is-green-node{--kind-indent:28px}
         .glbc-switch{position:relative;width:46px;height:26px;flex:0 0 auto;border-radius:999px;background:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);transition:background 130ms ease}.glbc-switch::after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgb(0 0 0 / 28%);transition:transform 130ms ease}.glbc-switch[aria-checked=true]{background:var(--accent)}.glbc-switch[aria-checked=true]::after{transform:translateX(20px)}.glbc-switch[data-state=unknown]{background:#a56c32}.glbc-switch:disabled,.glbc-action:disabled{cursor:wait;opacity:.55}
         .glbc-edit-button{width:30px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center}
@@ -63,6 +64,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     const root = hostDocument.createElement('div');
     root.className = 'glbc-root';
     root.dataset.glbcOwner = scriptId;
+    const subsectionStorageKey = `${scriptId}:subsections:${BOOK_FILE}`;
     root.innerHTML = `
         <button class="glbc-launcher" type="button" aria-label="打开绿茵世界书管理器" aria-expanded="false">⚽</button>
         <section class="glbc-panel" aria-label="绿茵世界书管理器" hidden>
@@ -110,6 +112,36 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         status.dataset.kind = kind;
     }
 
+    function readSubsectionConfig() {
+        try {
+            const parsed = JSON.parse(hostWindow.localStorage.getItem(subsectionStorageKey) || '{}');
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch {
+            return {};
+        }
+    }
+
+    function writeSubsectionConfig(config) {
+        hostWindow.localStorage.setItem(subsectionStorageKey, JSON.stringify(config));
+    }
+
+    function configuredSubsections(sectionUid) {
+        const items = readSubsectionConfig()[uidKey(sectionUid)];
+        return Array.isArray(items) ? items.filter(Boolean) : [];
+    }
+
+    function addConfiguredSubsection(sectionUid, title) {
+        const cleanTitle = String(title ?? '').trim();
+        const key = uidKey(sectionUid);
+        if (!key || !cleanTitle) return false;
+        const config = readSubsectionConfig();
+        const items = Array.isArray(config[key]) ? config[key] : [];
+        if (!items.includes(cleanTitle)) items.push(cleanTitle);
+        config[key] = items;
+        writeSubsectionConfig(config);
+        return true;
+    }
+
     function makeSwitch(uid) {
         const button = element('button', 'glbc-switch');
         button.type = 'button';
@@ -142,6 +174,16 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         head.type = 'button';
         head.dataset.action = 'group';
         head.innerHTML = `<span class="glbc-tree-icon"></span><span class="glbc-tree-name"></span><span class="glbc-group-add" role="button" tabindex="0" data-action="new-entry" data-module="${node.id}" title="在此分组新建">＋</span><span class="glbc-chevron">›</span>`;
+        const addButton = head.querySelector('.glbc-group-add');
+        if (isSectionModule(node.id)) {
+            addButton.dataset.action = 'new-subsection';
+            addButton.title = '在此一级标题下新建二级标题';
+            addButton.textContent = '二';
+        } else if (isSubsectionModule(node.id)) {
+            addButton.classList.add('is-subsection-add');
+            addButton.title = '在此二级标题下新建三级条目';
+            addButton.textContent = '三';
+        }
         head.querySelector('.glbc-tree-icon').textContent = node.icon;
         head.querySelector('.glbc-tree-name').textContent = node.label;
         const body = element('div', 'glbc-tree-children');
@@ -154,6 +196,22 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         }
         if (node.end) body.append(makeEntryRow(node.end[0], node.end[1], level + 1));
         group.append(head, body);
+        return group;
+    }
+
+    function makeVirtualSubsectionGroup({ sectionUid, title }, level = 2) {
+        const moduleId = subsectionModuleId(sectionUid, title);
+        const group = makeGroup({
+            id: moduleId,
+            label: title || '未命名二级标题',
+            icon: '节',
+            color: '#93c5fd',
+            children: [],
+        }, level);
+        group.classList.add('is-virtual-subsection');
+        group.dataset.sectionUid = sectionUid;
+        group.dataset.subsectionTitle = title;
+        group.dataset.virtual = 'true';
         return group;
     }
 
@@ -173,18 +231,28 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         return group;
     }
 
+    function collectSectionSubsections(entries, sectionUid) {
+        const titles = new Set(configuredSubsections(sectionUid));
+        for (const entry of entries) {
+            const subsection = subsectionFromComment(entry?.comment);
+            if (subsection?.sectionUid === uidKey(sectionUid) && subsection.title) titles.add(subsection.title);
+        }
+        return [...titles];
+    }
+
     function buildTree() {
         treeHost.replaceChildren(...TREE.map(node => makeGroup(node, 0)));
     }
 
     function groupBodyByModule(moduleId) {
-        if (moduleId?.startsWith?.('section:')) return treeHost.querySelector(`[data-group-id="${moduleId}"] > .glbc-tree-children`);
+        if (isSubsectionModule(moduleId)) return treeHost.querySelector(`[data-group-id="${moduleId}"] > .glbc-tree-children`);
+        if (isSectionModule(moduleId)) return treeHost.querySelector(`[data-group-id="${moduleId}"] > .glbc-tree-children`);
         if (moduleId === 'overview') return treeHost.querySelector('[data-group-id="world"] > .glbc-tree-children');
         return treeHost.querySelector(`[data-group-id="${moduleId}"] > .glbc-tree-children`);
     }
 
     function endUidsForModule(moduleId) {
-        if (moduleId?.startsWith?.('section:')) return [];
+        if (isSectionModule(moduleId) || isSubsectionModule(moduleId)) return [];
         if (moduleId === 'overview') return ['21'];
         if (moduleId === 'rules') return ['21'];
         return {
@@ -198,6 +266,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
 
     function syncDynamicRows(book) {
         treeHost.querySelectorAll('.glbc-tree-row.is-dynamic').forEach(row => row.remove());
+        treeHost.querySelectorAll('.glbc-tree-group.is-virtual-subsection').forEach(group => group.remove());
         treeHost.querySelectorAll('.glbc-tree-group.is-dynamic-section').forEach(group => group.remove());
         const entries = Object.values(book?.entries ?? {})
             .filter(entry => !STATIC_UIDS.has(uidKey(entry?.uid ?? entry?.id)))
@@ -212,17 +281,30 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             if (worldEndRow) worldBody.insertBefore(group, worldEndRow);
             else worldBody.append(group);
         }
+        for (const sectionEntry of entries) {
+            const sectionUid = uidKey(sectionEntry?.uid ?? sectionEntry?.id);
+            if (!sectionUid || moduleFromComment(sectionEntry.comment) !== 'section') continue;
+            const sectionBody = groupBodyByModule(sectionModuleId(sectionUid));
+            if (!sectionBody) continue;
+            for (const title of collectSectionSubsections(entries, sectionUid)) {
+                sectionBody.append(makeVirtualSubsectionGroup({ sectionUid, title }, 2));
+            }
+        }
         for (const entry of entries) {
             const uid = uidKey(entry?.uid ?? entry?.id);
             if (!uid) continue;
             const moduleId = moduleFromComment(entry.comment);
             if (moduleId === 'section') continue;
-            const body = groupBodyByModule(moduleId);
+            const subsection = subsectionFromComment(entry.comment);
+            const targetModuleId = subsection?.title
+                ? subsectionModuleId(subsection.sectionUid, subsection.title)
+                : moduleId;
+            const body = groupBodyByModule(targetModuleId);
             if (!body) continue;
             const row = makeEntryRow(uid, entry.comment || `自定义节点 ${uid}`, 1);
             row.classList.add('is-dynamic');
-            row.dataset.module = moduleId;
-            const endUids = endUidsForModule(moduleId);
+            row.dataset.module = targetModuleId;
+            const endUids = endUidsForModule(targetModuleId);
             const endRow = [...body.querySelectorAll(':scope > .glbc-tree-row')]
                 .find(item => item.dataset.uid && endUids.includes(item.dataset.uid));
             if (endRow) body.insertBefore(row, endRow);
@@ -355,16 +437,19 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         treeHost.querySelectorAll('.glbc-tree-row').forEach(row => row.classList.remove('is-active'));
         const dynamicSections = [...treeHost.querySelectorAll('.glbc-tree-group.is-dynamic-section')]
             .map(group => ({ value: group.dataset.groupId, label: group.querySelector('.glbc-tree-name')?.textContent || group.dataset.groupId }));
+        const dynamicSubsections = [...treeHost.querySelectorAll('.glbc-tree-group.is-virtual-subsection')]
+            .map(group => ({ value: group.dataset.groupId, label: group.querySelector('.glbc-tree-name')?.textContent || group.dataset.groupId }));
         const selectedModule = defaultModule === 'world'
             ? 'section'
-            : (MODULES[defaultModule] || defaultModule?.startsWith?.('section:') ? defaultModule : 'rules');
+            : (MODULES[defaultModule] || isSectionModule(defaultModule) || isSubsectionModule(defaultModule) ? defaultModule : 'rules');
         const selectedKind = selectedModule === 'section' ? 'section' : (selectedModule === 'rules' || selectedModule === 'overview' ? 'rule' : 'green');
         const baseModuleOptions = Object.entries(MODULES)
             .filter(([value]) => value !== 'section')
             .map(([value, item]) => `<option value="${value}"${value === selectedModule ? ' selected' : ''}>${esc(item.label)}</option>`).join('');
         const sectionOption = `<option value="section"${selectedModule === 'section' ? ' selected' : ''}>一级主干</option>`;
         const dynamicOptions = dynamicSections.map(item => `<option value="${esc(item.value)}"${item.value === selectedModule ? ' selected' : ''}>${esc(item.label)} · 子条目</option>`).join('');
-        const moduleOptions = `${sectionOption}${baseModuleOptions}${dynamicOptions}`;
+        const subsectionOptions = dynamicSubsections.map(item => `<option value="${esc(item.value)}"${item.value === selectedModule ? ' selected' : ''}>${esc(item.label)} · 三级条目</option>`).join('');
+        const moduleOptions = `${sectionOption}${baseModuleOptions}${dynamicOptions}${subsectionOptions}`;
         editor.innerHTML = `
             <div class="glbc-form-row">
                 <label>挂载模块</label>
@@ -401,6 +486,48 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             </div>`;
     }
 
+    function renderNewSubsectionForm(sectionModule) {
+        const section = String(sectionModule ?? '').match(/^section:(\d+)$/);
+        if (!section) {
+            renderNewEntryForm(sectionModule);
+            return;
+        }
+        activeUid = '';
+        treeHost.querySelectorAll('.glbc-tree-row').forEach(row => row.classList.remove('is-active'));
+        const sectionGroup = treeHost.querySelector(`[data-group-id="${sectionModule}"]`);
+        const sectionLabel = sectionGroup?.querySelector('.glbc-tree-name')?.textContent || `一级标题 #${section[1]}`;
+        editor.innerHTML = `
+            <div class="glbc-form-row">
+                <label>所属一级标题</label>
+                <input class="glbc-input" value="${esc(sectionLabel)}" disabled>
+            </div>
+            <div class="glbc-form-row">
+                <label>二级标题名称</label>
+                <input class="glbc-input" data-field="new-subsection-title" value="">
+            </div>
+            <div class="glbc-editor-flags">
+                <span>二级标题只用于控制器收纳</span>
+                <span>不会创建真实世界书条目</span>
+                <span>已有绿灯条目仍按三级标题处理</span>
+            </div>
+            <div class="glbc-editor-actions">
+                <button class="glbc-action" type="button" data-action="new-entry" data-module="${esc(sectionModule)}">改建三级条目</button>
+                <button class="glbc-action primary" type="button" data-action="create-subsection" data-section-uid="${esc(section[1])}">创建二级标题</button>
+            </div>`;
+    }
+
+    async function createSubsection(button) {
+        const sectionUid = button.dataset.sectionUid;
+        const title = editor.querySelector('[data-field="new-subsection-title"]')?.value.trim();
+        if (!title) {
+            setStatus('二级标题不能为空', 'error');
+            return;
+        }
+        addConfiguredSubsection(sectionUid, title);
+        setStatus(`二级标题「${title}」已加入控制器`);
+        await refreshTree(false);
+    }
+
 
 
 
@@ -410,7 +537,9 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const book = await store.load();
         const moduleId = editor.querySelector('[data-field="new-module"]')?.value || 'overview';
         const selectedKind = editor.querySelector('[data-field="new-kind"]')?.value || 'green';
-        const kind = moduleId === 'section' ? 'section' : (selectedKind === 'section' ? 'section' : selectedKind);
+        const kind = moduleId === 'section'
+            ? 'section'
+            : (isSubsectionModule(moduleId) ? 'green' : (selectedKind === 'section' ? 'section' : selectedKind));
         const rawComment = editor.querySelector('[data-field="new-comment"]')?.value.trim() || '新资料节点';
         const content = editor.querySelector('[data-field="new-content"]')?.value ?? '';
         const keys = splitKeys(editor.querySelector('[data-field="new-keys"]')?.value ?? '');
@@ -619,6 +748,8 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         else if (action === 'delete-entry') void deleteActiveEntry();
         else if (action === 'reload-entry') void renderEditor(activeUid);
         else if (action === 'new-entry') renderNewEntryForm(button.dataset.module);
+        else if (action === 'new-subsection') renderNewSubsectionForm(button.dataset.module);
+        else if (action === 'create-subsection') void createSubsection(button);
         else if (action === 'create-entry') void createEntry();
     }, eventOptions);
 
