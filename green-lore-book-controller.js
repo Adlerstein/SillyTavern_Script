@@ -1,5 +1,5 @@
 import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/SillyTavern_Script@1bbded69af6fa712c5d376821c549ccf7d1d776d/lore-book-controller-store.js?v=20260614-4';
-import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry, findLegacyEntry, isSectionModule, isSubsectionModule, joinKeys, maxDisplayIndex, moduleFromComment, nextUid, nodeKind, orderFor, removeEntryByUid, sectionModuleId, setEntryShape, splitKeys, subsectionFromComment, subsectionModuleId, templateUid, uidKey, updateEntryFields } from './green-lore-book-controller-core.js?v=20260624-subsection1';
+import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry, findLegacyEntry, isSectionModule, isSubsectionModule, joinKeys, maxDisplayIndex, moduleFromComment, nextUid, nodeKind, orderFor, parseSubsectionModule, removeEntryByUid, sectionModuleId, setEntryShape, splitKeys, stripEntryPrefixes, subsectionFromComment, subsectionModuleId, templateUid, uidKey, updateEntryFields } from './green-lore-book-controller-core.js?v=20260624-subsection2';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -42,8 +42,8 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         .glbc-body{min-height:0;display:grid;grid-template-columns:minmax(390px,44%) minmax(0,1fr)}
         .glbc-tree{min-height:0;overflow:auto;padding:12px 10px 12px 12px;border-right:1px solid var(--border)}.glbc-editor{min-height:0;display:grid;grid-template-rows:none;align-content:start;overflow:auto;padding:12px;gap:10px}
         .glbc-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:10px}.glbc-search{width:100%;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:0 10px}
-        .glbc-tree-group{margin:0 0 8px}.glbc-tree-head{width:100%;min-height:42px;display:grid;grid-template-columns:28px minmax(0,1fr) 30px auto;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--surface);text-align:left}.glbc-tree-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--group-color) 18%,transparent);color:var(--group-color);font-weight:700}.glbc-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-group-add{width:28px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;font-weight:700}.glbc-group-add.is-subsection-add{font-size:13px}.glbc-tree-group[data-open=false]>.glbc-tree-children{display:none}.glbc-tree-group[data-open=true]>.glbc-tree-head .glbc-chevron{transform:rotate(90deg)}.glbc-chevron{transition:transform 160ms ease;color:var(--muted)}
-        .glbc-tree-children{margin-left:10px;padding-left:11px;border-left:1px solid var(--border)}.glbc-tree-row{--level-indent:0px;--kind-indent:0px;min-height:40px;display:grid;grid-template-columns:14px minmax(0,1fr) 86px;align-items:center;column-gap:9px;margin-left:var(--level-indent);padding:5px 6px 5px calc(6px + var(--kind-indent));border-radius:9px}.glbc-tree-row[hidden]{display:none}.glbc-tree-row.is-active{background:color-mix(in srgb,var(--accent) 24%,transparent)}.glbc-node-dot{width:9px;height:9px;border-radius:50%;background:var(--muted);justify-self:center}.glbc-node-dot.is-blue{background:#60a5fa}.glbc-node-dot.is-green{background:#22c55e}.glbc-node-dot.is-tag{background:#f59e0b}.glbc-row-title{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.32;word-break:break-word}.glbc-node-meta{color:var(--muted);font-size:11px;white-space:nowrap}.glbc-row-actions{width:86px;display:grid;grid-template-columns:30px 48px;align-items:center;justify-content:end;gap:8px}
+        .glbc-tree-group{margin:0 0 8px}.glbc-tree-head{width:100%;min-height:42px;display:grid;grid-template-columns:28px minmax(0,1fr) 30px auto;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--surface);text-align:left}.glbc-tree-icon{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--group-color) 18%,transparent);color:var(--group-color);font-weight:700}.glbc-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.glbc-group-add{width:28px;height:28px;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;font-weight:700}.glbc-group-add.is-subsection-add{font-size:13px}.glbc-tree-group[data-open=false]>.glbc-tree-children{display:none}.glbc-tree-group[data-open=true]>.glbc-tree-head .glbc-chevron{transform:rotate(90deg)}.glbc-chevron{transition:transform 160ms ease;color:var(--muted)}.glbc-tree-group.is-drag-over>.glbc-tree-head{outline:2px solid var(--accent);outline-offset:1px}
+        .glbc-tree-children{margin-left:10px;padding-left:11px;border-left:1px solid var(--border)}.glbc-tree-row{--level-indent:0px;--kind-indent:0px;min-height:40px;display:grid;grid-template-columns:14px minmax(0,1fr) 86px;align-items:center;column-gap:9px;margin-left:var(--level-indent);padding:5px 6px 5px calc(6px + var(--kind-indent));border-radius:9px}.glbc-tree-row[hidden]{display:none}.glbc-tree-row[draggable=true]{cursor:grab}.glbc-tree-row.is-dragging{opacity:.55}.glbc-tree-row.is-active{background:color-mix(in srgb,var(--accent) 24%,transparent)}.glbc-node-dot{width:9px;height:9px;border-radius:50%;background:var(--muted);justify-self:center}.glbc-node-dot.is-blue{background:#60a5fa}.glbc-node-dot.is-green{background:#22c55e}.glbc-node-dot.is-tag{background:#f59e0b}.glbc-row-title{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.32;word-break:break-word}.glbc-node-meta{color:var(--muted);font-size:11px;white-space:nowrap}.glbc-row-actions{width:86px;display:grid;grid-template-columns:30px 48px;align-items:center;justify-content:end;gap:8px}
         .glbc-tree-group.is-virtual-subsection>.glbc-tree-head{min-height:36px;background:color-mix(in srgb,var(--surface) 72%,transparent);grid-template-columns:24px minmax(0,1fr) 30px auto}.glbc-tree-group.is-virtual-subsection .glbc-tree-icon{width:22px;height:22px;font-size:12px}.glbc-tree-group.is-virtual-subsection .glbc-tree-name{font-size:13px;color:var(--muted)}
         .glbc-tree-row.is-tag-node{--kind-indent:0px}.glbc-tree-row.is-blue-node{--kind-indent:14px}.glbc-tree-row.is-green-node{--kind-indent:28px}
         .glbc-switch{position:relative;width:46px;height:26px;flex:0 0 auto;border-radius:999px;background:color-mix(in srgb,var(--bg) 70%,var(--text) 30%);transition:background 130ms ease}.glbc-switch::after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgb(0 0 0 / 28%);transition:transform 130ms ease}.glbc-switch[aria-checked=true]{background:var(--accent)}.glbc-switch[aria-checked=true]::after{transform:translateX(20px)}.glbc-switch[data-state=unknown]{background:#a56c32}.glbc-switch:disabled,.glbc-action:disabled{cursor:wait;opacity:.55}
@@ -94,11 +94,23 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     const status = root.querySelector('.glbc-status');
     let activeUid = '';
     let dragged = false;
+    let draggedEntryUid = '';
     let openedAt = 0;
     let lastTouchToggle = 0;
     let forceCompact = false;
     let wandRetryTimer;
     let wandRetryCount = 0;
+    const subsectionParentModules = new Set(['timeline', 'league', 'club', 'tactic', 'position', 'rules']);
+    const defaultSubsectionTitle = '未分组三级标题';
+
+    function canHaveSubsections(moduleId) {
+        return subsectionParentModules.has(String(moduleId ?? '')) || isSectionModule(moduleId);
+    }
+
+    function modulePrefix(moduleId) {
+        if (isSectionModule(moduleId)) return `[${moduleId}]`;
+        return MODULES[moduleId]?.prefix ?? MODULES.rules.prefix;
+    }
 
     function element(tag, className, text) {
         const node = hostDocument.createElement(tag);
@@ -142,6 +154,55 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         return true;
     }
 
+    function dragTargetGroup(target) {
+        const group = target?.closest?.('.glbc-tree-group');
+        if (!group) return null;
+        const moduleId = group.dataset.groupId;
+        if (isSubsectionModule(moduleId) || canHaveSubsections(moduleId)) return group;
+        return null;
+    }
+
+    function clearDragState() {
+        draggedEntryUid = '';
+        treeHost.querySelectorAll('.is-dragging,.is-drag-over').forEach(node => {
+            node.classList.remove('is-dragging', 'is-drag-over');
+        });
+    }
+
+    async function moveEntryToSubsection(uid, targetModuleId, subsectionTitle = '') {
+        const book = await store.load();
+        const entry = findEntry(book, uid);
+        if (!entry || nodeKind(entry) !== 'green') {
+            setStatus('只能拖动绿灯三级条目', 'error');
+            return;
+        }
+        const parentModuleId = isSubsectionModule(targetModuleId)
+            ? parseSubsectionModule(targetModuleId)?.parentModuleId
+            : targetModuleId;
+        if (!canHaveSubsections(parentModuleId)) {
+            setStatus('这个位置不能收纳三级条目', 'error');
+            return;
+        }
+        const title = stripEntryPrefixes(entry.comment) || `节点 #${uid}`;
+        const cleanSubsection = subsectionTitle && subsectionTitle !== defaultSubsectionTitle ? subsectionTitle : '';
+        const nextComment = `${modulePrefix(parentModuleId)}${cleanSubsection ? `[subsection:${cleanSubsection}]` : ''}${title}`;
+        const snapshot = clone(book);
+        try {
+            updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
+            const legacy = findLegacyEntry(book, uid);
+            if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
+            setStatus('正在归纳条目...');
+            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
+            setStatus(cleanSubsection ? `已归纳到「${cleanSubsection}」` : '已移出二级标题');
+            await refreshTree(true);
+            if (activeUid === String(uid)) await renderEditor(uid, false);
+        } catch (error) {
+            Object.assign(book, snapshot);
+            setStatus('拖动归纳失败', 'error');
+            console.error('[绿茵世界书管理器] 拖动归纳失败', error);
+        }
+    }
+
     function makeSwitch(uid) {
         const button = element('button', 'glbc-switch');
         button.type = 'button';
@@ -175,14 +236,14 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         head.dataset.action = 'group';
         head.innerHTML = `<span class="glbc-tree-icon"></span><span class="glbc-tree-name"></span><span class="glbc-group-add" role="button" tabindex="0" data-action="new-entry" data-module="${node.id}" title="在此分组新建">＋</span><span class="glbc-chevron">›</span>`;
         const addButton = head.querySelector('.glbc-group-add');
-        if (isSectionModule(node.id)) {
-            addButton.dataset.action = 'new-subsection';
-            addButton.title = '在此一级标题下新建二级标题';
-            addButton.textContent = '二';
-        } else if (isSubsectionModule(node.id)) {
+        if (isSubsectionModule(node.id)) {
             addButton.classList.add('is-subsection-add');
             addButton.title = '在此二级标题下新建三级条目';
             addButton.textContent = '三';
+        } else if (canHaveSubsections(node.id)) {
+            addButton.dataset.action = 'new-subsection';
+            addButton.title = '在此一级标题下新建二级标题';
+            addButton.textContent = '二';
         }
         head.querySelector('.glbc-tree-icon').textContent = node.icon;
         head.querySelector('.glbc-tree-name').textContent = node.label;
@@ -199,8 +260,8 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         return group;
     }
 
-    function makeVirtualSubsectionGroup({ sectionUid, title }, level = 2) {
-        const moduleId = subsectionModuleId(sectionUid, title);
+    function makeVirtualSubsectionGroup({ parentModuleId, title }, level = 2) {
+        const moduleId = subsectionModuleId(parentModuleId, title);
         const group = makeGroup({
             id: moduleId,
             label: title || '未命名二级标题',
@@ -209,7 +270,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             children: [],
         }, level);
         group.classList.add('is-virtual-subsection');
-        group.dataset.sectionUid = sectionUid;
+        group.dataset.parentModule = parentModuleId;
         group.dataset.subsectionTitle = title;
         group.dataset.virtual = 'true';
         return group;
@@ -231,13 +292,34 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         return group;
     }
 
-    function collectSectionSubsections(entries, sectionUid) {
-        const titles = new Set(configuredSubsections(sectionUid));
+    function collectModuleSubsections(entries, parentModuleId) {
+        const parent = uidKey(parentModuleId);
+        const titles = new Set(configuredSubsections(parent));
         for (const entry of entries) {
             const subsection = subsectionFromComment(entry?.comment);
-            if (subsection?.sectionUid === uidKey(sectionUid) && subsection.title) titles.add(subsection.title);
+            if (subsection?.parentModuleId === parent && subsection.title) titles.add(subsection.title);
         }
         return [...titles];
+    }
+
+    function ensureSubsectionGroup(parentModuleId, title) {
+        const moduleId = subsectionModuleId(parentModuleId, title);
+        let body = groupBodyByModule(moduleId);
+        if (body) return body;
+        const parentBody = groupBodyByModule(parentModuleId);
+        if (!parentBody) return null;
+        parentBody.append(makeVirtualSubsectionGroup({ parentModuleId, title }, isSectionModule(parentModuleId) ? 2 : 1));
+        return groupBodyByModule(moduleId);
+    }
+
+    function moveDirectGreenRowsIntoDefaultSubsection(book, parentModuleId) {
+        const parentBody = groupBodyByModule(parentModuleId);
+        if (!parentBody) return;
+        const rows = [...parentBody.querySelectorAll(':scope > .glbc-tree-row')]
+            .filter(row => nodeKind(findEntry(book, row.dataset.uid)) === 'green');
+        if (!rows.length) return;
+        const defaultBody = ensureSubsectionGroup(parentModuleId, defaultSubsectionTitle);
+        rows.forEach(row => defaultBody?.append(row));
     }
 
     function buildTree() {
@@ -281,13 +363,17 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             if (worldEndRow) worldBody.insertBefore(group, worldEndRow);
             else worldBody.append(group);
         }
-        for (const sectionEntry of entries) {
-            const sectionUid = uidKey(sectionEntry?.uid ?? sectionEntry?.id);
-            if (!sectionUid || moduleFromComment(sectionEntry.comment) !== 'section') continue;
-            const sectionBody = groupBodyByModule(sectionModuleId(sectionUid));
-            if (!sectionBody) continue;
-            for (const title of collectSectionSubsections(entries, sectionUid)) {
-                sectionBody.append(makeVirtualSubsectionGroup({ sectionUid, title }, 2));
+        const subsectionParents = [
+            ...subsectionParentModules,
+            ...entries
+                .filter(entry => moduleFromComment(entry.comment) === 'section')
+                .map(entry => sectionModuleId(entry?.uid ?? entry?.id)),
+        ];
+        for (const parentModuleId of subsectionParents) {
+            const parentBody = groupBodyByModule(parentModuleId);
+            if (!parentBody) continue;
+            for (const title of collectModuleSubsections(entries, parentModuleId)) {
+                parentBody.append(makeVirtualSubsectionGroup({ parentModuleId, title }, isSectionModule(parentModuleId) ? 2 : 1));
             }
         }
         for (const entry of entries) {
@@ -297,9 +383,11 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             if (moduleId === 'section') continue;
             const subsection = subsectionFromComment(entry.comment);
             const targetModuleId = subsection?.title
-                ? subsectionModuleId(subsection.sectionUid, subsection.title)
-                : moduleId;
-            const body = groupBodyByModule(targetModuleId);
+                ? subsectionModuleId(subsection.parentModuleId, subsection.title)
+                : (canHaveSubsections(moduleId) && nodeKind(entry) === 'green' ? subsectionModuleId(moduleId, defaultSubsectionTitle) : moduleId);
+            const body = isSubsectionModule(targetModuleId)
+                ? ensureSubsectionGroup(moduleId, subsection?.title || defaultSubsectionTitle)
+                : groupBodyByModule(targetModuleId);
             if (!body) continue;
             const row = makeEntryRow(uid, entry.comment || `自定义节点 ${uid}`, 1);
             row.classList.add('is-dynamic');
@@ -309,6 +397,9 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
                 .find(item => item.dataset.uid && endUids.includes(item.dataset.uid));
             if (endRow) body.insertBefore(row, endRow);
             else body.append(row);
+        }
+        for (const parentModuleId of subsectionParents) {
+            moveDirectGreenRowsIntoDefaultSubsection(book, parentModuleId);
         }
     }
 
@@ -335,6 +426,8 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
                 row.classList.toggle('is-tag-node', kind === 'tag');
                 row.classList.toggle('is-blue-node', kind === 'blue');
                 row.classList.toggle('is-green-node', kind === 'green');
+                row.draggable = kind === 'green';
+                row.title = kind === 'green' ? '拖到二级标题可归纳；拖到一级标题可移出二级标题' : '';
                 dot.className = `glbc-node-dot is-${kind}`;
                 row.dataset.search = `${uid} ${title} ${entryKeys(entry).join(' ')} ${String(entry?.content ?? '').slice(0, 200)}`.toLowerCase();
                 const button = row.querySelector('.glbc-switch');
@@ -487,15 +580,15 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     }
 
     function renderNewSubsectionForm(sectionModule) {
-        const section = String(sectionModule ?? '').match(/^section:(\d+)$/);
-        if (!section) {
+        const parentModuleId = String(sectionModule ?? '').trim();
+        if (!canHaveSubsections(parentModuleId)) {
             renderNewEntryForm(sectionModule);
             return;
         }
         activeUid = '';
         treeHost.querySelectorAll('.glbc-tree-row').forEach(row => row.classList.remove('is-active'));
-        const sectionGroup = treeHost.querySelector(`[data-group-id="${sectionModule}"]`);
-        const sectionLabel = sectionGroup?.querySelector('.glbc-tree-name')?.textContent || `一级标题 #${section[1]}`;
+        const sectionGroup = treeHost.querySelector(`[data-group-id="${parentModuleId}"]`);
+        const sectionLabel = sectionGroup?.querySelector('.glbc-tree-name')?.textContent || MODULES[parentModuleId]?.label || parentModuleId;
         editor.innerHTML = `
             <div class="glbc-form-row">
                 <label>所属一级标题</label>
@@ -511,19 +604,19 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
                 <span>已有绿灯条目仍按三级标题处理</span>
             </div>
             <div class="glbc-editor-actions">
-                <button class="glbc-action" type="button" data-action="new-entry" data-module="${esc(sectionModule)}">改建三级条目</button>
-                <button class="glbc-action primary" type="button" data-action="create-subsection" data-section-uid="${esc(section[1])}">创建二级标题</button>
+                <button class="glbc-action" type="button" data-action="new-entry" data-module="${esc(parentModuleId)}">改建三级条目</button>
+                <button class="glbc-action primary" type="button" data-action="create-subsection" data-parent-module="${esc(parentModuleId)}">创建二级标题</button>
             </div>`;
     }
 
     async function createSubsection(button) {
-        const sectionUid = button.dataset.sectionUid;
+        const parentModuleId = button.dataset.parentModule;
         const title = editor.querySelector('[data-field="new-subsection-title"]')?.value.trim();
         if (!title) {
             setStatus('二级标题不能为空', 'error');
             return;
         }
-        addConfiguredSubsection(sectionUid, title);
+        addConfiguredSubsection(parentModuleId, title);
         setStatus(`二级标题「${title}」已加入控制器`);
         await refreshTree(false);
     }
@@ -752,6 +845,51 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         else if (action === 'create-subsection') void createSubsection(button);
         else if (action === 'create-entry') void createEntry();
     }, eventOptions);
+
+    panel.addEventListener('dragstart', event => {
+        const row = event.target.closest('.glbc-tree-row');
+        if (!row || row.draggable !== true) {
+            event.preventDefault();
+            return;
+        }
+        draggedEntryUid = row.dataset.uid;
+        row.classList.add('is-dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', draggedEntryUid);
+    }, eventOptions);
+
+    panel.addEventListener('dragover', event => {
+        if (!draggedEntryUid) return;
+        const group = dragTargetGroup(event.target);
+        if (!group) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        treeHost.querySelectorAll('.glbc-tree-group.is-drag-over').forEach(item => {
+            if (item !== group) item.classList.remove('is-drag-over');
+        });
+        group.classList.add('is-drag-over');
+        group.dataset.open = 'true';
+    }, eventOptions);
+
+    panel.addEventListener('dragleave', event => {
+        const group = event.target.closest?.('.glbc-tree-group.is-drag-over');
+        if (group && !group.contains(event.relatedTarget)) group.classList.remove('is-drag-over');
+    }, eventOptions);
+
+    panel.addEventListener('drop', event => {
+        if (!draggedEntryUid) return;
+        const group = dragTargetGroup(event.target);
+        if (!group) return;
+        event.preventDefault();
+        const targetModuleId = group.dataset.groupId;
+        const subsection = parseSubsectionModule(targetModuleId);
+        const subsectionTitle = subsection?.title || '';
+        const uid = draggedEntryUid;
+        clearDragState();
+        void moveEntryToSubsection(uid, subsection?.parentModuleId || targetModuleId, subsectionTitle);
+    }, eventOptions);
+
+    panel.addEventListener('dragend', clearDragState, eventOptions);
 
     search.addEventListener('input', applySearch, eventOptions);
 
