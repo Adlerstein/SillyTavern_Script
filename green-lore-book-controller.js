@@ -1,5 +1,5 @@
 import { createLoreBookStore } from 'https://cdn.jsdelivr.net/gh/Adlerstein/SillyTavern_Script@1bbded69af6fa712c5d376821c549ccf7d1d776d/lore-book-controller-store.js?v=20260614-4';
-import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry, findLegacyEntry, isSectionModule, isSubsectionModule, joinKeys, maxDisplayIndex, moduleFromComment, nextUid, nodeKind, orderFor, parseSubsectionModule, removeEntryByUid, sectionModuleId, setEntryShape, splitKeys, stripEntryPrefixes, subsectionFromComment, subsectionModuleId, templateUid, uidKey, updateEntryFields } from './green-lore-book-controller-core.js?v=20260624-subsection2';
+import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry, findLegacyEntry, isSectionModule, isSubsectionModule, joinKeys, maxDisplayIndex, moduleFromComment, nextUid, nodeKind, orderFor, parseSubsectionModule, removeEntryByUid, sectionModuleId, setEntryShape, splitKeys, stripEntryPrefixes, subsectionFromComment, subsectionModuleId, templateUid, uidKey, updateEntryFields } from './green-lore-book-controller-core.js?v=20260624-placement1';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -425,10 +425,24 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const parentBody = groupBodyByModule(parentModuleId);
         if (!parentBody) return;
         const rows = [...parentBody.querySelectorAll(':scope > .glbc-tree-row')]
-            .filter(row => nodeKind(findEntry(book, row.dataset.uid)) === 'green');
+            .filter(row => {
+                const entry = findEntry(book, row.dataset.uid);
+                return nodeKind(entry) === 'green' && !entryPlacement(entry);
+            });
         if (!rows.length) return;
         const defaultBody = ensureSubsectionGroup(parentModuleId, defaultSubsectionTitle);
         rows.forEach(row => defaultBody?.append(row));
+    }
+
+    function movePlacedStaticRows(book) {
+        for (const row of [...treeHost.querySelectorAll('.glbc-tree-row:not(.is-dynamic)')]) {
+            const entry = findEntry(book, row.dataset.uid);
+            if (!entry || nodeKind(entry) !== 'green') continue;
+            const placement = entryPlacement(entry);
+            if (!placement?.parentModuleId || !placement.title) continue;
+            const body = ensureSubsectionGroup(placement.parentModuleId, placement.title);
+            body?.append(row);
+        }
     }
 
     function buildTree() {
@@ -507,6 +521,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             if (endRow) body.insertBefore(row, endRow);
             else body.append(row);
         }
+        movePlacedStaticRows(book);
         for (const parentModuleId of subsectionParents) {
             moveDirectGreenRowsIntoDefaultSubsection(book, parentModuleId);
         }
