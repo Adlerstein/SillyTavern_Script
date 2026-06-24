@@ -1,4 +1,4 @@
-﻿import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
+import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
 import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, entryKeys, esc, findEntry, isSectionModule, isSubsectionModule, joinKeys, moduleFromComment, nodeKind, parseSubsectionModule, sectionModuleId, stripEntryPrefixes, subsectionFromComment, subsectionModuleId, uidKey } from './green-lore-book-controller-core.js?v=20260624-placement1';
 import { createGreenLoreBookTreeState } from './green-lore-book-controller-state.js?v=20260624-state1';
 import { createGreenLoreBookActions } from './green-lore-book-controller-actions.js?v=20260624-actions1';
