@@ -54,6 +54,37 @@ export const clone = value => typeof structuredClone === 'function' ? structured
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 export const splitKeys = value => String(value ?? '').split(/[,，\n]/).map(item => item.trim()).filter(Boolean);
 export const joinKeys = keys => Array.isArray(keys) ? keys.join('，') : '';
+export const sectionModuleId = sectionUid => `section:${uidKey(sectionUid)}`;
+export const subsectionModuleId = (sectionUid, title) => `${sectionModuleId(sectionUid)}:sub:${encodeURIComponent(String(title ?? '').trim())}`;
+export const isSectionModule = moduleId => /^section:\d+$/.test(String(moduleId ?? ''));
+export const isSubsectionModule = moduleId => /^section:\d+:sub:/.test(String(moduleId ?? ''));
+
+export function parseSubsectionModule(moduleId) {
+    const match = String(moduleId ?? '').match(/^section:(\d+):sub:(.+)$/);
+    if (!match) return null;
+    return {
+        sectionUid: match[1],
+        title: decodeURIComponent(match[2]),
+        moduleId: String(moduleId),
+    };
+}
+
+export function subsectionFromComment(comment) {
+    const match = String(comment ?? '').match(/^\[section:(\d+)\]\[subsection:([^\]]+)\]/);
+    if (!match) return null;
+    return {
+        sectionUid: match[1],
+        title: match[2].trim(),
+    };
+}
+
+export function stripEntryPrefixes(comment) {
+    return String(comment ?? '')
+        .replace(/^\[section:\d+\]/, '')
+        .replace(/^\[subsection:[^\]]+\]/, '')
+        .replace(/^\[(?:timeline|league|club|tactic|position|rule|rules|overview|tree|section)\]/, '')
+        .trim();
+}
 
 export function flattenTree(nodes = TREE, result = []) {
     for (const node of nodes) {
@@ -125,7 +156,7 @@ export function nodeKind(entry) {
 }
 
 export function templateUid(moduleId, kind) {
-    if (kind === 'section' || moduleId?.startsWith?.('section:')) return 34;
+    if (kind === 'section' || isSectionModule(moduleId) || isSubsectionModule(moduleId)) return 34;
     if (kind === 'blue' || kind === 'rule') {
         return ({ timeline: 35, rules: 3, league: 30, club: 31, tactic: 32, position: 33, overview: 34 })[moduleId] ?? 35;
     }
@@ -138,7 +169,7 @@ export function maxDisplayIndex(book) {
 
 export function orderFor(moduleId, kind) {
     if (kind === 'section' || moduleId === 'section') return MODULES.section.blueOrder;
-    if (moduleId?.startsWith?.('section:')) return kind === 'green' ? MODULES.section.greenOrder : MODULES.section.blueOrder;
+    if (isSectionModule(moduleId) || isSubsectionModule(moduleId)) return kind === 'green' ? MODULES.section.greenOrder : MODULES.section.blueOrder;
     const module = MODULES[moduleId] ?? MODULES.rules;
     if (kind === 'green') return module.greenOrder;
     return module.blueOrder;
@@ -155,10 +186,16 @@ export function setEntryShape(entry, { uid, moduleId, kind, comment, content, ke
     const id = Number(uid);
     entry.uid = id;
     if ('id' in entry) entry.id = id;
+    const subsection = parseSubsectionModule(moduleId);
+    const shapeModuleId = subsection ? sectionModuleId(subsection.sectionUid) : moduleId;
+    const rawComment = stripEntryPrefixes(comment);
     const prefix = kind === 'section'
         ? MODULES.section.prefix
-        : (moduleId?.startsWith?.('section:') ? `[${moduleId}]` : MODULES[moduleId].prefix);
-    entry.comment = comment.startsWith(prefix) ? comment : `${prefix}${comment}`;
+        : (isSectionModule(shapeModuleId) ? `[${shapeModuleId}]` : MODULES[shapeModuleId].prefix);
+    const subsectionPrefix = subsection && kind === 'green' ? `[subsection:${subsection.title}]` : '';
+    entry.comment = String(comment ?? '').startsWith(`${prefix}${subsectionPrefix}`)
+        ? comment
+        : `${prefix}${subsectionPrefix}${rawComment || '新资料节点'}`;
     entry.content = content;
     entry.constant = kind === 'blue' || kind === 'rule' || kind === 'section';
     entry.selective = kind === 'green';
