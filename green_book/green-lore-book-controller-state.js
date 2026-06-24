@@ -88,20 +88,10 @@ export function createGreenLoreBookTreeState({ storage, scriptId, bookFile, defa
         writePlacements(config);
     }
 
-    function metadataPlacement(entry) {
-        const meta = entry?.extensions?.green_lore;
-        const title = String(meta?.subsection ?? '').trim();
-        const parentModuleId = uidKey(meta?.parentModuleId);
-        if (!parentModuleId || !title || title === defaultSubsectionTitle) return null;
-        return { parentModuleId, title };
-    }
-
     function placementForEntry(entry) {
         const uid = uidKey(entry?.uid ?? entry?.id);
-        const metadata = metadataPlacement(entry);
-        if (metadata) return metadata;
         const placement = readPlacements()[uid];
-        if (placement?.parentModuleId && placement.title && placement.title !== defaultSubsectionTitle) return placement;
+        if (placement?.parentModuleId && placement.title) return placement;
         const legacy = subsectionFromComment(entry?.comment);
         return legacy?.title ? { parentModuleId: legacy.parentModuleId, title: legacy.title } : null;
     }
@@ -113,8 +103,6 @@ export function createGreenLoreBookTreeState({ storage, scriptId, bookFile, defa
             if (placement?.parentModuleId === parent && placement.title) titles.add(placement.title);
         }
         for (const entry of entries) {
-            const metadata = metadataPlacement(entry);
-            if (metadata?.parentModuleId === parent && metadata.title) titles.add(metadata.title);
             const subsection = subsectionFromComment(entry?.comment);
             if (subsection?.parentModuleId === parent && subsection.title) titles.add(subsection.title);
         }

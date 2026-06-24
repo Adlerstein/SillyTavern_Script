@@ -1,7 +1,7 @@
 import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
-import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, entryKeys, esc, findEntry, isSectionModule, isSubsectionModule, joinKeys, moduleFromComment, nodeKind, parseSubsectionModule, sectionModuleId, stripEntryPrefixes, subsectionFromComment, subsectionModuleId, uidKey } from './green-lore-book-controller-core.js?v=20260624-placement2';
-import { createGreenLoreBookTreeState } from './green-lore-book-controller-state.js?v=20260624-state2';
-import { createGreenLoreBookActions } from './green-lore-book-controller-actions.js?v=20260624-actions2';
+import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, entryKeys, esc, findEntry, isSectionModule, isSubsectionModule, joinKeys, moduleFromComment, nodeKind, parseSubsectionModule, sectionModuleId, stripEntryPrefixes, subsectionFromComment, subsectionModuleId, uidKey } from './green-lore-book-controller-core.js?v=20260624-placement1';
+import { createGreenLoreBookTreeState } from './green-lore-book-controller-state.js?v=20260624-state1';
+import { createGreenLoreBookActions } from './green-lore-book-controller-actions.js?v=20260624-actions1';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -302,8 +302,7 @@ import { createGreenLoreBookActions } from './green-lore-book-controller-actions
         treeHost.querySelectorAll('.glbc-tree-row.is-dynamic').forEach(row => row.remove());
         treeHost.querySelectorAll('.glbc-tree-group.is-virtual-subsection').forEach(group => group.remove());
         treeHost.querySelectorAll('.glbc-tree-group.is-dynamic-section').forEach(group => group.remove());
-        const allEntries = Object.values(book?.entries ?? {});
-        const entries = allEntries
+        const entries = Object.values(book?.entries ?? {})
             .filter(entry => !STATIC_UIDS.has(uidKey(entry?.uid ?? entry?.id)))
             .sort((a, b) => Number(a?.displayIndex ?? a?.uid ?? 0) - Number(b?.displayIndex ?? b?.uid ?? 0));
         const worldBody = groupBodyByModule('overview');
@@ -325,7 +324,7 @@ import { createGreenLoreBookActions } from './green-lore-book-controller-actions
         for (const parentModuleId of subsectionParents) {
             const parentBody = groupBodyByModule(parentModuleId);
             if (!parentBody) continue;
-            for (const title of treeState.subsectionTitlesFor(parentModuleId, allEntries)) {
+            for (const title of treeState.subsectionTitlesFor(parentModuleId, entries)) {
                 insertGroupBeforeModuleEnd(parentModuleId, makeVirtualSubsectionGroup({ parentModuleId, title }, isSectionModule(parentModuleId) ? 2 : 1));
             }
         }
