@@ -67,6 +67,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     root.className = 'glbc-root';
     root.dataset.glbcOwner = scriptId;
     const subsectionStorageKey = `${scriptId}:subsections:${BOOK_FILE}`;
+    const placementStorageKey = `${scriptId}:subsection-placements:${BOOK_FILE}`;
     root.innerHTML = `
         <button class="glbc-launcher" type="button" aria-label="打开绿茵世界书管理器" aria-expanded="false">⚽</button>
         <section class="glbc-panel" aria-label="绿茵世界书管理器" hidden>
@@ -97,6 +98,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     let activeUid = '';
     let dragged = false;
     let draggedEntryUid = '';
+    let draggedSubsectionModuleId = '';
     let openedAt = 0;
     let lastTouchToggle = 0;
     let forceCompact = false;
@@ -139,6 +141,34 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         hostWindow.localStorage.setItem(subsectionStorageKey, JSON.stringify(config));
     }
 
+    function readPlacementConfig() {
+        try {
+            const parsed = JSON.parse(hostWindow.localStorage.getItem(placementStorageKey) || '{}');
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch {
+            return {};
+        }
+    }
+
+    function writePlacementConfig(config) {
+        hostWindow.localStorage.setItem(placementStorageKey, JSON.stringify(config));
+    }
+
+    function setEntryPlacement(uid, parentModuleId, title) {
+        const key = uidKey(uid);
+        const cleanTitle = String(title ?? '').trim();
+        const config = readPlacementConfig();
+        if (!key || !cleanTitle || cleanTitle === defaultSubsectionTitle) delete config[key];
+        else config[key] = { parentModuleId, title: cleanTitle };
+        writePlacementConfig(config);
+    }
+
+    function removeEntryPlacement(uid) {
+        const config = readPlacementConfig();
+        delete config[uidKey(uid)];
+        writePlacementConfig(config);
+    }
+
     function configuredSubsections(sectionUid) {
         const items = readSubsectionConfig()[uidKey(sectionUid)];
         return Array.isArray(items) ? items.filter(Boolean) : [];
@@ -177,6 +207,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
 
     function clearDragState() {
         draggedEntryUid = '';
+        draggedSubsectionModuleId = '';
         treeHost.querySelectorAll('.is-dragging,.is-drag-over').forEach(node => {
             node.classList.remove('is-dragging', 'is-drag-over');
         });
@@ -198,12 +229,13 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         }
         const title = stripEntryPrefixes(entry.comment) || `节点 #${uid}`;
         const cleanSubsection = subsectionTitle && subsectionTitle !== defaultSubsectionTitle ? subsectionTitle : '';
-        const nextComment = `${modulePrefix(parentModuleId)}${cleanSubsection ? `[subsection:${cleanSubsection}]` : ''}${title}`;
+        const nextComment = `${modulePrefix(parentModuleId)}${title}`;
         const snapshot = clone(book);
         try {
             updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
             const legacy = findLegacyEntry(book, uid);
             if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
+            setEntryPlacement(uid, parentModuleId, cleanSubsection);
             setStatus('正在归纳条目...');
             await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
             setStatus(cleanSubsection ? `已归纳到「${cleanSubsection}」` : '已移出二级标题');
@@ -213,6 +245,45 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             Object.assign(book, snapshot);
             setStatus('拖动归纳失败', 'error');
             console.error('[绿茵世界书管理器] 拖动归纳失败', error);
+        }
+    }
+
+    async function moveSubsectionToParent(sourceModuleId, targetParentModuleId) {
+        const source = parseSubsectionModule(sourceModuleId);
+        const targetParent = isSubsectionModule(targetParentModuleId)
+            ? parseSubsectionModule(targetParentModuleId)?.parentModuleId
+            : targetParentModuleId;
+        if (!source?.parentModuleId || !source.title || source.title === defaultSubsectionTitle || !canHaveSubsections(targetParent)) return;
+        if (source.parentModuleId === targetParent) return;
+        const book = await store.load();
+        const affected = Object.values(book?.entries ?? {})
+            .filter(entry => {
+                const placement = entryPlacement(entry);
+                const legacy = subsectionFromComment(entry?.comment);
+                return (placement?.parentModuleId === source.parentModuleId && placement.title === source.title)
+                    || (legacy?.parentModuleId === source.parentModuleId && legacy.title === source.title);
+            });
+        const snapshot = clone(book);
+        try {
+            removeConfiguredSubsection(source.parentModuleId, source.title);
+            addConfiguredSubsection(targetParent, source.title);
+            for (const entry of affected) {
+                const uid = uidKey(entry?.uid ?? entry?.id);
+                const title = stripEntryPrefixes(entry.comment) || `节点 #${uid}`;
+                const nextComment = `${modulePrefix(targetParent)}${title}`;
+                updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
+                const legacy = findLegacyEntry(book, uid);
+                if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
+                setEntryPlacement(uid, targetParent, source.title);
+            }
+            setStatus('正在移动二级标题...');
+            await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
+            setStatus(`二级标题「${source.title}」已移动`);
+            await refreshTree(true);
+        } catch (error) {
+            Object.assign(book, snapshot);
+            setStatus('移动二级标题失败', 'error');
+            console.error('[绿茵世界书管理器] 移动二级标题失败', error);
         }
     }
 
@@ -299,6 +370,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         group.dataset.parentModule = parentModuleId;
         group.dataset.subsectionTitle = title;
         group.dataset.virtual = 'true';
+        if (title !== defaultSubsectionTitle) group.querySelector(':scope > .glbc-tree-head').draggable = true;
         return group;
     }
 
@@ -321,11 +393,23 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     function collectModuleSubsections(entries, parentModuleId) {
         const parent = uidKey(parentModuleId);
         const titles = new Set(configuredSubsections(parent));
+        const placements = readPlacementConfig();
+        for (const placement of Object.values(placements)) {
+            if (placement?.parentModuleId === parent && placement.title) titles.add(placement.title);
+        }
         for (const entry of entries) {
             const subsection = subsectionFromComment(entry?.comment);
             if (subsection?.parentModuleId === parent && subsection.title) titles.add(subsection.title);
         }
         return [...titles];
+    }
+
+    function entryPlacement(entry) {
+        const uid = uidKey(entry?.uid ?? entry?.id);
+        const placement = readPlacementConfig()[uid];
+        if (placement?.parentModuleId && placement.title) return placement;
+        const legacy = subsectionFromComment(entry?.comment);
+        return legacy?.title ? { parentModuleId: legacy.parentModuleId, title: legacy.title } : null;
     }
 
     function ensureSubsectionGroup(parentModuleId, title) {
@@ -406,12 +490,12 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             if (!uid) continue;
             const moduleId = moduleFromComment(entry.comment);
             if (moduleId === 'section') continue;
-            const subsection = subsectionFromComment(entry.comment);
-            const targetModuleId = subsection?.title
-                ? subsectionModuleId(subsection.parentModuleId, subsection.title)
+            const placement = entryPlacement(entry);
+            const targetModuleId = placement?.title
+                ? subsectionModuleId(placement.parentModuleId, placement.title)
                 : (canHaveSubsections(moduleId) && nodeKind(entry) === 'green' ? subsectionModuleId(moduleId, defaultSubsectionTitle) : moduleId);
             const body = isSubsectionModule(targetModuleId)
-                ? ensureSubsectionGroup(moduleId, subsection?.title || defaultSubsectionTitle)
+                ? ensureSubsectionGroup(placement?.parentModuleId || moduleId, placement?.title || defaultSubsectionTitle)
                 : groupBodyByModule(targetModuleId);
             if (!body) continue;
             const row = makeEntryRow(uid, entry.comment || `自定义节点 ${uid}`, 1);
@@ -449,8 +533,9 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
                     row.remove();
                     return;
                 }
-                const title = entry?.comment || row.dataset.label || uid;
                 const kind = nodeKind(entry);
+                const rawTitle = entry?.comment || row.dataset.label || uid;
+                const title = kind === 'tag' ? rawTitle : (stripEntryPrefixes(rawTitle) || rawTitle);
                 const dot = row.querySelector('.glbc-node-dot');
                 row.querySelector('.glbc-row-title').innerHTML = `<span>${esc(title)}</span> <span class="glbc-node-meta">#${esc(uid)}</span>`;
                 row.classList.toggle('is-tag-node', kind === 'tag');
@@ -659,8 +744,8 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const book = await store.load();
         const affected = Object.values(book?.entries ?? {})
             .filter(entry => {
-                const current = subsectionFromComment(entry?.comment);
-                return current?.parentModuleId === subsection.parentModuleId && current.title === subsection.title;
+                const placement = entryPlacement(entry);
+                return placement?.parentModuleId === subsection.parentModuleId && placement.title === subsection.title;
             });
         const message = affected.length
             ? `删除二级标题「${subsection.title}」？下面的 ${affected.length} 个绿灯条目会移到未分组三级标题，不会被删除。`
@@ -674,6 +759,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
                 updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
                 const legacy = findLegacyEntry(book, uid);
                 if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
+                removeEntryPlacement(uid);
             }
             removeConfiguredSubsection(subsection.parentModuleId, subsection.title);
             setStatus('正在删除二级标题...');
@@ -697,20 +783,21 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const affected = subsection.title === defaultSubsectionTitle
             ? Object.values(book?.entries ?? {}).filter(entry => {
                 const moduleId = moduleFromComment(entry?.comment);
-                return moduleId === subsection.parentModuleId && nodeKind(entry) === 'green' && !subsectionFromComment(entry?.comment);
+                return moduleId === subsection.parentModuleId && nodeKind(entry) === 'green' && !entryPlacement(entry);
             })
             : Object.values(book?.entries ?? {}).filter(entry => {
-                const current = subsectionFromComment(entry?.comment);
+                const current = entryPlacement(entry);
                 return current?.parentModuleId === subsection.parentModuleId && current.title === subsection.title;
             });
         const snapshot = clone(book);
         try {
             for (const entry of affected) {
                 const uid = uidKey(entry?.uid ?? entry?.id);
-                const nextComment = `${modulePrefix(subsection.parentModuleId)}[subsection:${cleanTitle}]${stripEntryPrefixes(entry.comment) || `节点 #${uid}`}`;
+                const nextComment = `${modulePrefix(subsection.parentModuleId)}${stripEntryPrefixes(entry.comment) || `节点 #${uid}`}`;
                 updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
                 const legacy = findLegacyEntry(book, uid);
                 if (legacy) updateEntryFields(legacy, nextComment, legacy.content ?? entry.content ?? '', entryKeys(legacy).length ? entryKeys(legacy) : entryKeys(entry));
+                setEntryPlacement(uid, subsection.parentModuleId, cleanTitle);
             }
             if (subsection.title !== defaultSubsectionTitle) removeConfiguredSubsection(subsection.parentModuleId, subsection.title);
             addConfiguredSubsection(subsection.parentModuleId, cleanTitle);
@@ -757,11 +844,11 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const entry = findEntry(book, targetUid);
         if (!entry || nodeKind(entry) === 'tag') return;
         const moduleId = moduleFromComment(entry.comment);
-        const subsection = subsectionFromComment(entry.comment);
-        const parentModuleId = subsection?.parentModuleId || moduleId;
+        const placement = entryPlacement(entry);
+        const parentModuleId = placement?.parentModuleId || moduleId;
         const nextComment = moduleId === 'section'
             ? `[section]${cleanTitle}`
-            : `${modulePrefix(parentModuleId)}${subsection?.title ? `[subsection:${subsection.title}]` : ''}${cleanTitle}`;
+            : `${modulePrefix(parentModuleId)}${cleanTitle}`;
         const snapshot = clone(book);
         try {
             updateEntryFields(entry, nextComment, entry.content ?? '', entryKeys(entry));
@@ -833,7 +920,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             committed = true;
             const nextTitle = commit ? input.value.trim() : input.dataset.originalTitle;
             const replacement = element('span', 'glbc-row-title');
-            replacement.append(element('span', '', String(entry.comment ?? input.dataset.originalTitle)), ' ', element('span', 'glbc-node-meta', `#${uid}`));
+            replacement.append(element('span', '', input.dataset.originalTitle), ' ', element('span', 'glbc-node-meta', `#${uid}`));
             input.replaceWith(replacement);
             if (!commit || !nextTitle || nextTitle === input.dataset.originalTitle) return;
             void renameEntryTitle(uid, nextTitle);
@@ -863,6 +950,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const uid = nextUid(book);
         const template = findEntry(book, templateUid(moduleId, kind)) || Object.values(book.entries ?? {})[0] || {};
         const entry = clone(template);
+        const subsection = parseSubsectionModule(moduleId);
         entry.displayIndex = maxDisplayIndex(book) + 1;
         if (entry.extensions) entry.extensions.display_index = entry.displayIndex;
         setEntryShape(entry, { uid, moduleId, kind, comment: rawComment, content, keys });
@@ -881,6 +969,7 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
             }
             setStatus('正在创建节点...');
             await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
+            if (subsection && kind === 'green') setEntryPlacement(uid, subsection.parentModuleId, subsection.title);
             setStatus(`节点 #${uid} 已创建`);
             await refreshTree(true);
             await renderEditor(uid);
@@ -913,7 +1002,11 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
         const snapshot = clone(book);
         try {
             removeEntryByUid(book, targetUid);
-            childEntries.forEach(item => removeEntryByUid(book, item?.uid ?? item?.id));
+            removeEntryPlacement(targetUid);
+            childEntries.forEach(item => {
+                removeEntryByUid(book, item?.uid ?? item?.id);
+                removeEntryPlacement(item?.uid ?? item?.id);
+            });
             setStatus('正在删除节点...');
             await getSaveWorldInfo()(BOOK_FILE, clone(book), true, { refreshEditor: true });
             const deletedCount = childEntries.length + 1;
@@ -1102,6 +1195,19 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     }, eventOptions);
 
     panel.addEventListener('dragstart', event => {
+        const groupHead = event.target.closest('.glbc-tree-group.is-virtual-subsection > .glbc-tree-head');
+        if (groupHead?.draggable === true) {
+            const group = groupHead.closest('.glbc-tree-group');
+            draggedSubsectionModuleId = group?.dataset.groupId || '';
+            if (!draggedSubsectionModuleId) {
+                event.preventDefault();
+                return;
+            }
+            group.classList.add('is-dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', draggedSubsectionModuleId);
+            return;
+        }
         const row = event.target.closest('.glbc-tree-row');
         if (!row || row.draggable !== true) {
             event.preventDefault();
@@ -1114,16 +1220,17 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     }, eventOptions);
 
     panel.addEventListener('dragover', event => {
-        if (!draggedEntryUid) return;
+        if (!draggedEntryUid && !draggedSubsectionModuleId) return;
         const group = dragTargetGroup(event.target);
         if (!group) return;
+        if (draggedSubsectionModuleId && (!canHaveSubsections(group.dataset.groupId) || isSubsectionModule(group.dataset.groupId))) return;
+        if (draggedSubsectionModuleId && group.dataset.groupId === parseSubsectionModule(draggedSubsectionModuleId)?.parentModuleId) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
         treeHost.querySelectorAll('.glbc-tree-group.is-drag-over').forEach(item => {
             if (item !== group) item.classList.remove('is-drag-over');
         });
         group.classList.add('is-drag-over');
-        group.dataset.open = 'true';
     }, eventOptions);
 
     panel.addEventListener('dragleave', event => {
@@ -1132,11 +1239,17 @@ import { BOOK_FILE, MODULES, STATIC_UIDS, TREE, clone, entryKeys, esc, findEntry
     }, eventOptions);
 
     panel.addEventListener('drop', event => {
-        if (!draggedEntryUid) return;
+        if (!draggedEntryUid && !draggedSubsectionModuleId) return;
         const group = dragTargetGroup(event.target);
         if (!group) return;
         event.preventDefault();
         const targetModuleId = group.dataset.groupId;
+        if (draggedSubsectionModuleId) {
+            const sourceModuleId = draggedSubsectionModuleId;
+            clearDragState();
+            void moveSubsectionToParent(sourceModuleId, targetModuleId);
+            return;
+        }
         const subsection = parseSubsectionModule(targetModuleId);
         const subsectionTitle = subsection?.title || '';
         const uid = draggedEntryUid;
