@@ -1,4 +1,4 @@
-import { BOOK_FILE, clone, entryKeys, findEntry, findLegacyEntry, isSubsectionModule, maxDisplayIndex, moduleFromComment, nextUid, nodeKind, orderFor, parseSubsectionModule, removeEntryByUid, setEntryShape, splitKeys, stripEntryPrefixes, subsectionFromComment, templateUid, uidKey, updateEntryFields } from './green-lore-book-controller-core.js?v=20260624-placement1';
+import { BOOK_FILE, clone, entryKeys, findEntry, findLegacyEntry, isSubsectionModule, maxDisplayIndex, moduleFromComment, nextUid, nodeKind, orderFor, parseSubsectionModule, removeEntryByUid, setEntryShape, splitKeys, stripEntryPrefixes, subsectionFromComment, templateUid, uidKey, updateEntryFields } from './green-lore-book-controller-core.js?v=20260624-placement2';
 
 export function createGreenLoreBookActions({
     store,
@@ -26,6 +26,29 @@ export function createGreenLoreBookActions({
         if (legacy) updateEntryFields(legacy, comment, content, preserveLegacyKeys && entryKeys(legacy).length ? entryKeys(legacy) : keys);
     }
 
+    function writeGreenLorePlacementToEntry(entry, parentModuleId, subsectionTitle = '') {
+        if (!entry) return;
+        entry.extensions = entry.extensions ?? {};
+        const meta = entry.extensions.green_lore && typeof entry.extensions.green_lore === 'object'
+            ? entry.extensions.green_lore
+            : {};
+        const cleanTitle = String(subsectionTitle ?? '').trim();
+        if (!cleanTitle || cleanTitle === defaultSubsectionTitle) {
+            delete meta.parentModuleId;
+            delete meta.subsection;
+        } else {
+            meta.parentModuleId = String(parentModuleId ?? '').trim();
+            meta.subsection = cleanTitle;
+        }
+        if (Object.keys(meta).length) entry.extensions.green_lore = meta;
+        else delete entry.extensions.green_lore;
+    }
+
+    function setEntryPlacementMetadata(book, uid, parentModuleId, subsectionTitle = '') {
+        writeGreenLorePlacementToEntry(findEntry(book, uid), parentModuleId, subsectionTitle);
+        writeGreenLorePlacementToEntry(findLegacyEntry(book, uid), parentModuleId, subsectionTitle);
+    }
+
     async function moveEntryToSubsection(uid, targetModuleId, subsectionTitle = '') {
         const book = await store.load();
         const entry = findEntry(book, uid);
@@ -46,6 +69,7 @@ export function createGreenLoreBookActions({
         const snapshot = clone(book);
         try {
             updateEntryAndLegacy(book, uid, nextComment, entry.content ?? '', entryKeys(entry));
+            setEntryPlacementMetadata(book, uid, parentModuleId, cleanSubsection);
             treeState.setPlacement(uid, parentModuleId, cleanSubsection);
             setStatus('正在归纳条目...');
             await saveBook(book);
@@ -89,6 +113,7 @@ export function createGreenLoreBookActions({
                 const title = stripEntryPrefixes(entry.comment) || `节点 #${uid}`;
                 const nextComment = `${modulePrefix(targetParent)}${title}`;
                 updateEntryAndLegacy(book, uid, nextComment, entry.content ?? '', entryKeys(entry));
+                setEntryPlacementMetadata(book, uid, targetParent, source.title);
                 treeState.setPlacement(uid, targetParent, source.title);
             }
             setStatus('正在移动二级标题...');
@@ -132,6 +157,7 @@ export function createGreenLoreBookActions({
                 const uid = uidKey(entry?.uid ?? entry?.id);
                 const nextComment = `${modulePrefix(subsection.parentModuleId)}${stripEntryPrefixes(entry.comment) || `节点 #${uid}`}`;
                 updateEntryAndLegacy(book, uid, nextComment, entry.content ?? '', entryKeys(entry));
+                setEntryPlacementMetadata(book, uid, subsection.parentModuleId, '');
                 treeState.removePlacement(uid);
             }
             treeState.removeSubsection(subsection.parentModuleId, subsection.title);
@@ -166,6 +192,7 @@ export function createGreenLoreBookActions({
                 const uid = uidKey(entry?.uid ?? entry?.id);
                 const nextComment = `${modulePrefix(subsection.parentModuleId)}${stripEntryPrefixes(entry.comment) || `节点 #${uid}`}`;
                 updateEntryAndLegacy(book, uid, nextComment, entry.content ?? '', entryKeys(entry));
+                setEntryPlacementMetadata(book, uid, subsection.parentModuleId, cleanTitle);
                 treeState.setPlacement(uid, subsection.parentModuleId, cleanTitle);
             }
             if (subsection.title !== defaultSubsectionTitle) treeState.removeSubsection(subsection.parentModuleId, subsection.title);
@@ -244,6 +271,7 @@ export function createGreenLoreBookActions({
         entry.displayIndex = maxDisplayIndex(book) + 1;
         if (entry.extensions) entry.extensions.display_index = entry.displayIndex;
         setEntryShape(entry, { uid, moduleId, kind, comment: String(rawComment ?? '').trim() || '新资料节点', content, keys });
+        if (subsection && kind === 'green') writeGreenLorePlacementToEntry(entry, subsection.parentModuleId, subsection.title);
         const snapshot = clone(book);
         try {
             if (Array.isArray(book.entries)) book.entries.push(entry);
