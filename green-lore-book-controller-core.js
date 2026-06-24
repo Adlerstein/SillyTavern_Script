@@ -55,34 +55,39 @@ export const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '
 export const splitKeys = value => String(value ?? '').split(/[,，\n]/).map(item => item.trim()).filter(Boolean);
 export const joinKeys = keys => Array.isArray(keys) ? keys.join('，') : '';
 export const sectionModuleId = sectionUid => `section:${uidKey(sectionUid)}`;
-export const subsectionModuleId = (sectionUid, title) => `${sectionModuleId(sectionUid)}:sub:${encodeURIComponent(String(title ?? '').trim())}`;
+export const subsectionModuleId = (parentModuleId, title) => {
+    const parent = /^\d+$/.test(uidKey(parentModuleId)) ? sectionModuleId(parentModuleId) : String(parentModuleId ?? '').trim();
+    return `${parent}:sub:${encodeURIComponent(String(title ?? '').trim())}`;
+};
 export const isSectionModule = moduleId => /^section:\d+$/.test(String(moduleId ?? ''));
-export const isSubsectionModule = moduleId => /^section:\d+:sub:/.test(String(moduleId ?? ''));
+export const isSubsectionModule = moduleId => /^(?:timeline|league|club|tactic|position|rules|overview|section:\d+):sub:/.test(String(moduleId ?? ''));
 
 export function parseSubsectionModule(moduleId) {
-    const match = String(moduleId ?? '').match(/^section:(\d+):sub:(.+)$/);
+    const match = String(moduleId ?? '').match(/^((?:timeline|league|club|tactic|position|rules|overview)|section:(\d+)):sub:(.+)$/);
     if (!match) return null;
     return {
-        sectionUid: match[1],
-        title: decodeURIComponent(match[2]),
+        parentModuleId: match[1],
+        sectionUid: match[2] ?? null,
+        title: decodeURIComponent(match[3]),
         moduleId: String(moduleId),
     };
 }
 
 export function subsectionFromComment(comment) {
-    const match = String(comment ?? '').match(/^\[section:(\d+)\]\[subsection:([^\]]+)\]/);
+    const match = String(comment ?? '').match(/^\[((?:timeline|league|club|tactic|position|rule|rules|overview|tree)|section:(\d+))\]\[subsection:([^\]]+)\]/);
     if (!match) return null;
+    const prefix = match[1] === 'rule' ? 'rules' : match[1] === 'tree' ? 'overview' : match[1];
     return {
-        sectionUid: match[1],
-        title: match[2].trim(),
+        parentModuleId: prefix,
+        sectionUid: match[2] ?? null,
+        title: match[3].trim(),
     };
 }
 
 export function stripEntryPrefixes(comment) {
     return String(comment ?? '')
-        .replace(/^\[section:\d+\]/, '')
+        .replace(/^\[(?:timeline|league|club|tactic|position|rule|rules|overview|tree|section:\d+|section)\]/, '')
         .replace(/^\[subsection:[^\]]+\]/, '')
-        .replace(/^\[(?:timeline|league|club|tactic|position|rule|rules|overview|tree|section)\]/, '')
         .trim();
 }
 
@@ -156,6 +161,8 @@ export function nodeKind(entry) {
 }
 
 export function templateUid(moduleId, kind) {
+    const subsection = parseSubsectionModule(moduleId);
+    if (subsection) return templateUid(subsection.parentModuleId, kind);
     if (kind === 'section' || isSectionModule(moduleId) || isSubsectionModule(moduleId)) return 34;
     if (kind === 'blue' || kind === 'rule') {
         return ({ timeline: 35, rules: 3, league: 30, club: 31, tactic: 32, position: 33, overview: 34 })[moduleId] ?? 35;
@@ -168,6 +175,8 @@ export function maxDisplayIndex(book) {
 }
 
 export function orderFor(moduleId, kind) {
+    const subsection = parseSubsectionModule(moduleId);
+    if (subsection) return orderFor(subsection.parentModuleId, kind);
     if (kind === 'section' || moduleId === 'section') return MODULES.section.blueOrder;
     if (isSectionModule(moduleId) || isSubsectionModule(moduleId)) return kind === 'green' ? MODULES.section.greenOrder : MODULES.section.blueOrder;
     const module = MODULES[moduleId] ?? MODULES.rules;
@@ -187,11 +196,11 @@ export function setEntryShape(entry, { uid, moduleId, kind, comment, content, ke
     entry.uid = id;
     if ('id' in entry) entry.id = id;
     const subsection = parseSubsectionModule(moduleId);
-    const shapeModuleId = subsection ? sectionModuleId(subsection.sectionUid) : moduleId;
+    const shapeModuleId = subsection ? subsection.parentModuleId : moduleId;
     const rawComment = stripEntryPrefixes(comment);
     const prefix = kind === 'section'
         ? MODULES.section.prefix
-        : (isSectionModule(shapeModuleId) ? `[${shapeModuleId}]` : MODULES[shapeModuleId].prefix);
+        : (isSectionModule(shapeModuleId) ? `[${shapeModuleId}]` : (MODULES[shapeModuleId]?.prefix ?? MODULES.rules.prefix));
     const subsectionPrefix = subsection && kind === 'green' ? `[subsection:${subsection.title}]` : '';
     entry.comment = String(comment ?? '').startsWith(`${prefix}${subsectionPrefix}`)
         ? comment
