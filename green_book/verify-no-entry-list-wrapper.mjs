@@ -4,7 +4,7 @@ const controller = fs.readFileSync(new URL('./green-lore-book-controller.js', im
 const stylesheet = fs.readFileSync(new URL('./green-lore-book-controller.css', import.meta.url), 'utf8');
 
 if (controller.includes('glbc-entry-list') || stylesheet.includes('glbc-entry-list')) {
-    throw new Error('Entry rows should be rendered directly under each group without a glbc-entry-list wrapper');
+    throw new Error('Entry rows should be rendered in the active category list without a glbc-entry-list wrapper');
 }
 
-console.log('entry rows render without wrapper');
+console.log('entry rows render in active category list without wrapper');

@@ -1,7 +1,7 @@
 import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
-import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle7';
+import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry } from './green-lore-book-controller-core.js?v=20260627-toggle8';
 
-const APP_VERSION = '20260627-toggle7';
+const APP_VERSION = '20260627-toggle8';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -32,7 +32,7 @@ const APP_VERSION = '20260627-toggle7';
         saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
     });
 
-    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle7', import.meta.url).href;
+    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle8', import.meta.url).href;
     const style = hostDocument.createElement('style');
     style.dataset.glbcOwner = scriptId;
     style.textContent = `@import url("${cssHref}");`;
@@ -45,23 +45,27 @@ const APP_VERSION = '20260627-toggle7';
         <button class="glbc-launcher" type="button" aria-label="打开绿茵世界书控制器" aria-expanded="false">⚽</button>
         <section class="glbc-panel" aria-label="绿茵世界书控制器" hidden>
             <header class="glbc-header">
-                <div class="glbc-title"><strong>绿茵世界书控制器</strong><span>${BOOK_FILE} · 开关控制版</span></div>
+                <div class="glbc-title"><strong>绿茵世界书控制器</strong><span>${BOOK_FILE} · 分类开关版</span></div>
                 <button class="glbc-icon-button" type="button" data-action="refresh" aria-label="刷新">↻</button>
                 <button class="glbc-icon-button" type="button" data-action="close" aria-label="关闭">×</button>
             </header>
             <main class="glbc-body">
+                <nav class="glbc-category-bar" aria-label="世界书大类"></nav>
                 <div class="glbc-toolbar">
-                    <input class="glbc-search" type="search" placeholder="搜索条目、编号、分组或关键词">
+                    <input class="glbc-search" type="search" placeholder="搜索当前大类里的条目、编号或关键词">
                 </div>
-                <div class="glbc-groups"></div>
+                <div class="glbc-active-summary"></div>
+                <div class="glbc-entries" tabindex="0"></div>
             </main>
-            <footer class="glbc-footer"><span class="glbc-status">准备就绪</span><span>版本 ${APP_VERSION} · 只保存条目开关，不改世界书结构</span></footer>
+            <footer class="glbc-footer"><span class="glbc-status">准备就绪</span><span>版本 ${APP_VERSION} · 顶部选大类，列表内滚动</span></footer>
         </section>`;
     hostDocument.body.append(root);
 
     const launcher = root.querySelector('.glbc-launcher');
     const panel = root.querySelector('.glbc-panel');
-    const groupsHost = root.querySelector('.glbc-groups');
+    const categoriesHost = root.querySelector('.glbc-category-bar');
+    const entriesHost = root.querySelector('.glbc-entries');
+    const summary = root.querySelector('.glbc-active-summary');
     const search = root.querySelector('.glbc-search');
     const status = root.querySelector('.glbc-status');
     let openedAt = 0;
@@ -71,6 +75,7 @@ const APP_VERSION = '20260627-toggle7';
     let wandRetryCount = 0;
     let currentGroups = [];
     let currentStates = new Map();
+    let activeGroupId = '';
 
     function element(tag, className, text) {
         const node = hostDocument.createElement(tag);
@@ -102,13 +107,18 @@ const APP_VERSION = '20260627-toggle7';
         return badge;
     }
 
+    function searchTextForEntry(entry) {
+        const uid = entryUid(entry);
+        return `${uid} ${entryPrefix(entry.comment)} ${entryTitle(entry)} ${String(entry.comment ?? '')} ${String(entry.key ?? '')}`.toLowerCase();
+    }
+
     function makeEntryRow(entry, enabled) {
         const uid = entryUid(entry);
         const prefix = entryPrefix(entry.comment);
         const locked = isLockedEntry(entry);
         const row = element('div', 'glbc-entry-row');
         row.dataset.uid = uid;
-        row.dataset.search = `${uid} ${prefix} ${entryTitle(entry)} ${String(entry.comment ?? '')} ${String(entry.key ?? '')}`.toLowerCase();
+        row.dataset.search = searchTextForEntry(entry);
         row.classList.toggle('is-locked', locked);
         row.innerHTML = `
             <div class="glbc-entry-main">
@@ -119,77 +129,74 @@ const APP_VERSION = '20260627-toggle7';
         return row;
     }
 
-    function makeGroup(group, states) {
-        const section = element('section', 'glbc-group');
-        section.dataset.groupId = group.id;
-        section.innerHTML = `
-            <button class="glbc-group-head" type="button" data-action="group" aria-expanded="false">
-                <span class="glbc-chevron">›</span>
-                <span class="glbc-group-title">${esc(group.label)}</span>
-                <span class="glbc-group-count">${group.enabledCount}/${group.totalCount} 开启</span>
-            </button>
-            <div class="glbc-group-tools">
-                <span>${esc(group.description || '')}</span>
-                <span>${group.disabledCount} 关闭 · ${group.unlockedCount} 可控</span>
-            </div>`;
-        setGroupOpen(section, false);
-        return section;
+    function activeGroup() {
+        return currentGroups.find(group => group.id === activeGroupId) ?? currentGroups[0] ?? null;
     }
 
-    function removeGroupRows(groupElement) {
-        [...groupElement.children].forEach(child => {
-            if (child.classList?.contains('glbc-entry-row')) child.remove();
-        });
+    function renderCategoryTabs() {
+        categoriesHost.replaceChildren(...currentGroups.map(group => {
+            const selected = group.id === activeGroupId;
+            const button = element('button', `glbc-category-tab${selected ? ' is-active' : ''}`);
+            button.type = 'button';
+            button.dataset.action = 'category';
+            button.dataset.groupId = group.id;
+            button.setAttribute('aria-pressed', String(selected));
+            button.innerHTML = `
+                <span class="glbc-category-name">${esc(group.label)}</span>
+                <span class="glbc-category-count">${group.enabledCount}/${group.totalCount}</span>`;
+            return button;
+        }));
     }
 
-    function renderGroupRows(groupElement) {
-        const group = currentGroups.find(item => item.id === groupElement.dataset.groupId);
-        if (!group) return;
-        removeGroupRows(groupElement);
-        group.entries.forEach(entry => {
-            groupElement.append(makeEntryRow(entry, currentStates.get(entryUid(entry))));
-        });
+    function entriesForActiveGroup() {
+        const group = activeGroup();
+        if (!group) return [];
+        const query = search.value.trim().toLowerCase();
+        if (!query) return group.entries;
+        return group.entries.filter(entry => searchTextForEntry(entry).includes(query));
+    }
+
+    function renderEntries(resetScroll = false) {
+        const group = activeGroup();
+        if (!group) {
+            summary.textContent = '没有可显示的大类';
+            entriesHost.replaceChildren();
+            return;
+        }
+
+        const entries = entriesForActiveGroup();
+        summary.textContent = `${group.label} · ${group.description || '当前大类'} · ${group.disabledCount} 关闭 · ${group.unlockedCount} 可控`;
+        if (entries.length) {
+            entriesHost.replaceChildren(...entries.map(entry => makeEntryRow(entry, currentStates.get(entryUid(entry)))));
+        } else {
+            entriesHost.replaceChildren(element('div', 'glbc-empty', '没有匹配条目'));
+        }
+        if (resetScroll) entriesHost.scrollTop = 0;
+        setStatus(`已加载 ${entries.length}/${group.totalCount} 个条目 · 版本 ${APP_VERSION}`);
+    }
+
+    function setActiveGroup(groupId, resetScroll = true) {
+        activeGroupId = currentGroups.some(group => group.id === groupId) ? groupId : (currentGroups[0]?.id ?? '');
+        renderCategoryTabs();
+        renderEntries(resetScroll);
     }
 
     function normalizeWheelDelta(event) {
-        const unit = event.deltaMode === 1 ? 18 : event.deltaMode === 2 ? groupsHost.clientHeight : 1;
+        const unit = event.deltaMode === 1 ? 18 : event.deltaMode === 2 ? entriesHost.clientHeight : 1;
         return event.deltaY * unit;
     }
 
     function handlePanelWheel(event) {
         if (panel.hidden || !panel.contains(event.target)) return;
-        if (groupsHost.scrollHeight <= groupsHost.clientHeight) return;
+        if (entriesHost.scrollHeight <= entriesHost.clientHeight) return;
         event.preventDefault();
         event.stopPropagation();
-        const nextTop = groupsHost.scrollTop + normalizeWheelDelta(event);
-        const maxTop = groupsHost.scrollHeight - groupsHost.clientHeight;
-        groupsHost.scrollTop = Math.max(0, Math.min(maxTop, nextTop));
-    }
-
-    function scrollGroupIntoView(groupElement) {
-        const nextTop = Math.max(0, groupElement.offsetTop - groupsHost.offsetTop - 4);
-        groupsHost.scrollTop = Math.min(nextTop, Math.max(0, groupsHost.scrollHeight - groupsHost.clientHeight));
+        const maxTop = entriesHost.scrollHeight - entriesHost.clientHeight;
+        entriesHost.scrollTop = Math.max(0, Math.min(maxTop, entriesHost.scrollTop + normalizeWheelDelta(event)));
     }
 
     function applySearch() {
-        const query = search.value.trim().toLowerCase();
-        const rows = [...groupsHost.querySelectorAll('.glbc-entry-row')];
-        if (!query) {
-            rows.forEach(row => { row.hidden = false; });
-            groupsHost.querySelectorAll('.glbc-group').forEach(group => { group.hidden = false; });
-            return;
-        }
-        groupsHost.querySelectorAll('.glbc-group').forEach(group => {
-            let groupHasMatch = false;
-            renderGroupRows(group);
-            group.querySelectorAll('.glbc-entry-row').forEach(row => {
-                const visible = row.dataset.search?.includes(query);
-                row.hidden = !visible;
-                groupHasMatch ||= Boolean(visible);
-            });
-            group.hidden = !groupHasMatch;
-            if (groupHasMatch) setGroupOpen(group, true);
-        });
+        renderEntries(true);
     }
 
     async function refreshDashboard(force = false) {
@@ -198,11 +205,10 @@ const APP_VERSION = '20260627-toggle7';
             const book = await store.load({ force });
             currentGroups = deriveGroups(book);
             const uids = currentGroups.flatMap(group => group.entries.map(entryUid));
-            const states = await store.getStates(uids, { force: false });
-            currentStates = states;
-            groupsHost.replaceChildren(...currentGroups.map(group => makeGroup(group, states)));
-            applySearch();
-            setStatus('世界书开关已同步');
+            currentStates = await store.getStates(uids, { force: false });
+            if (!currentGroups.some(group => group.id === activeGroupId)) activeGroupId = currentGroups[0]?.id ?? '';
+            setActiveGroup(activeGroupId, true);
+            setStatus(`世界书开关已同步 · 版本 ${APP_VERSION}`);
         } catch (error) {
             setStatus('读取失败，请重试', 'error');
             console.error('[绿茵世界书控制器] 读取失败', error);
@@ -336,21 +342,9 @@ const APP_VERSION = '20260627-toggle7';
         if (action === 'close') closePanel();
         else if (action === 'refresh') void refreshDashboard(true);
         else if (action === 'toggle') void toggleOne(actionNode);
-        else if (action === 'group') {
+        else if (action === 'category') {
             event.preventDefault();
-            const group = actionNode.closest('.glbc-group');
-            if (group) {
-                const nextOpen = group.dataset.open !== 'true';
-                setGroupOpen(group, nextOpen);
-                if (nextOpen) {
-                    renderGroupRows(group);
-                    scrollGroupIntoView(group);
-                    const renderedCount = group.querySelectorAll('.glbc-entry-row').length;
-                    setStatus(`已渲染 ${renderedCount} 个条目 · 版本 ${APP_VERSION}`);
-                } else {
-                    removeGroupRows(group);
-                }
-            }
+            setActiveGroup(actionNode.dataset.groupId, true);
         }
     }, { signal: events.signal, capture: true });
 

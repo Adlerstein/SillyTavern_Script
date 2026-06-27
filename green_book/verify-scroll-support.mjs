@@ -4,12 +4,12 @@ const controller = fs.readFileSync(new URL('./green-lore-book-controller.js', im
 const stylesheet = fs.readFileSync(new URL('./green-lore-book-controller.css', import.meta.url), 'utf8');
 
 const requiredControllerMarkers = [
-    "const APP_VERSION = '20260627-toggle7'",
+    "const APP_VERSION = '20260627-toggle8'",
     'function normalizeWheelDelta',
     'function handlePanelWheel',
     "panel.addEventListener('wheel', handlePanelWheel",
-    'function scrollGroupIntoView',
-    'scrollGroupIntoView(group)',
+    'entriesHost.scrollTop',
+    'entriesHost.scrollHeight',
 ];
 
 const missingController = requiredControllerMarkers.filter(marker => !controller.includes(marker));
