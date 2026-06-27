@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const controller = fs.readFileSync(new URL('./green-lore-book-controller.js', import.meta.url), 'utf8');
 
 const required = [
-    "const APP_VERSION = '20260627-toggle6'",
+    "const APP_VERSION = '20260627-toggle7'",
     '版本 ${APP_VERSION}',
     'function renderGroupRows',
     'renderGroupRows(group)',

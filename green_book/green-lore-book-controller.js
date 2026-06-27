@@ -1,7 +1,7 @@
 import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
-import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle6';
+import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle7';
 
-const APP_VERSION = '20260627-toggle6';
+const APP_VERSION = '20260627-toggle7';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -32,7 +32,7 @@ const APP_VERSION = '20260627-toggle6';
         saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
     });
 
-    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle6', import.meta.url).href;
+    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle7', import.meta.url).href;
     const style = hostDocument.createElement('style');
     style.dataset.glbcOwner = scriptId;
     style.textContent = `@import url("${cssHref}");`;
@@ -149,6 +149,26 @@ const APP_VERSION = '20260627-toggle6';
         group.entries.forEach(entry => {
             groupElement.append(makeEntryRow(entry, currentStates.get(entryUid(entry))));
         });
+    }
+
+    function normalizeWheelDelta(event) {
+        const unit = event.deltaMode === 1 ? 18 : event.deltaMode === 2 ? groupsHost.clientHeight : 1;
+        return event.deltaY * unit;
+    }
+
+    function handlePanelWheel(event) {
+        if (panel.hidden || !panel.contains(event.target)) return;
+        if (groupsHost.scrollHeight <= groupsHost.clientHeight) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const nextTop = groupsHost.scrollTop + normalizeWheelDelta(event);
+        const maxTop = groupsHost.scrollHeight - groupsHost.clientHeight;
+        groupsHost.scrollTop = Math.max(0, Math.min(maxTop, nextTop));
+    }
+
+    function scrollGroupIntoView(groupElement) {
+        const nextTop = Math.max(0, groupElement.offsetTop - groupsHost.offsetTop - 4);
+        groupsHost.scrollTop = Math.min(nextTop, Math.max(0, groupsHost.scrollHeight - groupsHost.clientHeight));
     }
 
     function applySearch() {
@@ -324,6 +344,7 @@ const APP_VERSION = '20260627-toggle6';
                 setGroupOpen(group, nextOpen);
                 if (nextOpen) {
                     renderGroupRows(group);
+                    scrollGroupIntoView(group);
                     const renderedCount = group.querySelectorAll('.glbc-entry-row').length;
                     setStatus(`已渲染 ${renderedCount} 个条目 · 版本 ${APP_VERSION}`);
                 } else {
@@ -334,6 +355,7 @@ const APP_VERSION = '20260627-toggle6';
     }, { signal: events.signal, capture: true });
 
     search.addEventListener('input', applySearch, { signal: events.signal });
+    panel.addEventListener('wheel', handlePanelWheel, { signal: events.signal, passive: false, capture: true });
 
     launcher.addEventListener('click', event => {
         if (Date.now() - openedAt < 250 || launcherMoved) {
