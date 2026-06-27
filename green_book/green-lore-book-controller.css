@@ -23,11 +23,10 @@
 .glbc-group-count{color:var(--muted);font-size:12px;white-space:nowrap}
 .glbc-chevron{transition:transform 160ms ease;color:var(--muted)}
 .glbc-group[data-open=true]>.glbc-group-head .glbc-chevron{transform:rotate(90deg)}
-.glbc-group[data-open=false]>.glbc-group-tools,.glbc-group[data-open=false]>.glbc-entry-list{display:none}
+.glbc-group[data-open=false]>.glbc-group-tools,.glbc-group[data-open=false]>.glbc-entry-row{display:none}
 .glbc-group-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}
 .glbc-group-tools span:first-child{min-width:min(240px,100%);flex:1}
 .glbc-switch:disabled{cursor:wait;opacity:.55}
-.glbc-entry-list{display:grid}
 .glbc-entry-row{min-height:44px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px;border-top:1px solid color-mix(in srgb,var(--border) 64%,transparent)}
 .glbc-entry-row[hidden]{display:none}
 .glbc-entry-main{min-width:0;display:grid;gap:2px}

@@ -1,5 +1,5 @@
 import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
-import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle4';
+import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle5';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -30,7 +30,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
         saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
     });
 
-    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle4', import.meta.url).href;
+    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle5', import.meta.url).href;
     const style = hostDocument.createElement('style');
     style.dataset.glbcOwner = scriptId;
     style.textContent = `@import url("${cssHref}");`;
@@ -128,11 +128,9 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
             <div class="glbc-group-tools">
                 <span>${esc(group.description || '')}</span>
                 <span>${group.disabledCount} 关闭 · ${group.unlockedCount} 可控</span>
-            </div>
-            <div class="glbc-entry-list"></div>`;
-        const list = section.querySelector('.glbc-entry-list');
+            </div>`;
         group.entries.forEach(entry => {
-            list.append(makeEntryRow(entry, states.get(entryUid(entry))));
+            section.append(makeEntryRow(entry, states.get(entryUid(entry))));
         });
         setGroupOpen(section, false);
         return section;
