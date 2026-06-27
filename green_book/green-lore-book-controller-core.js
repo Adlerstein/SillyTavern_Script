@@ -64,9 +64,6 @@ export function setGroupOpen(group, open) {
     const isOpen = Boolean(open);
     group.dataset.open = String(isOpen);
     group.querySelector?.('.glbc-group-head')?.setAttribute('aria-expanded', String(isOpen));
-    group.querySelectorAll?.('.glbc-group-tools,.glbc-entry-list').forEach(node => {
-        node.hidden = !isOpen;
-    });
 }
 
 export function entryPrefix(comment) {

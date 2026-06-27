@@ -1,5 +1,5 @@
 import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
-import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle3';
+import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle4';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -30,7 +30,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
         saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
     });
 
-    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle3', import.meta.url).href;
+    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle4', import.meta.url).href;
     const style = hostDocument.createElement('style');
     style.dataset.glbcOwner = scriptId;
     style.textContent = `@import url("${cssHref}");`;
