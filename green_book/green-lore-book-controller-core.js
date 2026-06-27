@@ -88,13 +88,14 @@ export function groupIdForEntry(entry) {
 }
 
 export function compareEntriesForDisplay(a, b) {
+    const priorityA = Number(a?.order ?? a?.insertion_order ?? a?.extensions?.order ?? a?.extensions?.insertion_order);
+    const priorityB = Number(b?.order ?? b?.insertion_order ?? b?.extensions?.order ?? b?.extensions?.insertion_order);
+    if (Number.isFinite(priorityA) && Number.isFinite(priorityB) && priorityA !== priorityB) return priorityA - priorityB;
+    if (Number.isFinite(priorityA) !== Number.isFinite(priorityB)) return Number.isFinite(priorityA) ? -1 : 1;
     const displayA = Number(a?.displayIndex ?? a?.extensions?.display_index);
     const displayB = Number(b?.displayIndex ?? b?.extensions?.display_index);
     if (Number.isFinite(displayA) && Number.isFinite(displayB) && displayA !== displayB) return displayA - displayB;
     if (Number.isFinite(displayA) !== Number.isFinite(displayB)) return Number.isFinite(displayA) ? -1 : 1;
-    const orderA = Number(a?.order ?? 0);
-    const orderB = Number(b?.order ?? 0);
-    if (orderA !== orderB) return orderA - orderB;
     return Number(entryUid(a) || 0) - Number(entryUid(b) || 0);
 }
 

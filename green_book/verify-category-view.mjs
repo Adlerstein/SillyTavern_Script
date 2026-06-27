@@ -4,7 +4,7 @@ const controller = fs.readFileSync(new URL('./green-lore-book-controller.js', im
 const stylesheet = fs.readFileSync(new URL('./green-lore-book-controller.css', import.meta.url), 'utf8');
 
 const requiredControllerMarkers = [
-    "const APP_VERSION = '20260627-toggle8'",
+    "const APP_VERSION = '20260627-toggle9'",
     'glbc-category-bar',
     'glbc-entries',
     'function renderCategoryTabs',

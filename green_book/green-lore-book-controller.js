@@ -1,7 +1,7 @@
 import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
-import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry } from './green-lore-book-controller-core.js?v=20260627-toggle8';
+import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry } from './green-lore-book-controller-core.js?v=20260627-toggle9';
 
-const APP_VERSION = '20260627-toggle8';
+const APP_VERSION = '20260627-toggle9';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -32,7 +32,7 @@ const APP_VERSION = '20260627-toggle8';
         saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
     });
 
-    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle8', import.meta.url).href;
+    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle9', import.meta.url).href;
     const style = hostDocument.createElement('style');
     style.dataset.glbcOwner = scriptId;
     style.textContent = `@import url("${cssHref}");`;
@@ -114,7 +114,6 @@ const APP_VERSION = '20260627-toggle8';
 
     function makeEntryRow(entry, enabled) {
         const uid = entryUid(entry);
-        const prefix = entryPrefix(entry.comment);
         const locked = isLockedEntry(entry);
         const row = element('div', 'glbc-entry-row');
         row.dataset.uid = uid;
@@ -123,7 +122,6 @@ const APP_VERSION = '20260627-toggle8';
         row.innerHTML = `
             <div class="glbc-entry-main">
                 <span class="glbc-entry-title">${esc(entryTitle(entry))}</span>
-                <span class="glbc-entry-meta">#${esc(uid)}${prefix ? ` · ${esc(prefix)}` : ''}</span>
             </div>`;
         row.append(locked ? makeLockedBadge() : makeSwitch(entry, enabled));
         return row;
