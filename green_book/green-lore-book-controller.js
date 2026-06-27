@@ -1,5 +1,5 @@
 import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
-import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle2';
+import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle3';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -30,7 +30,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
         saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
     });
 
-    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle2', import.meta.url).href;
+    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle3', import.meta.url).href;
     const style = hostDocument.createElement('style');
     style.dataset.glbcOwner = scriptId;
     style.textContent = `@import url("${cssHref}");`;
@@ -119,7 +119,6 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
     function makeGroup(group, states) {
         const section = element('section', 'glbc-group');
         section.dataset.groupId = group.id;
-        const canBatch = group.unlockedCount > 0;
         section.innerHTML = `
             <button class="glbc-group-head" type="button" data-action="group" aria-expanded="false">
                 <span class="glbc-chevron">›</span>
@@ -129,7 +128,6 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
             <div class="glbc-group-tools">
                 <span>${esc(group.description || '')}</span>
                 <span>${group.disabledCount} 关闭 · ${group.unlockedCount} 可控</span>
-                ${canBatch ? `<button class="glbc-action" type="button" data-action="batch" data-group="${esc(group.id)}" data-enabled="true">全开</button><button class="glbc-action" type="button" data-action="batch" data-group="${esc(group.id)}" data-enabled="false">全关</button>` : ''}
             </div>
             <div class="glbc-entry-list"></div>`;
         const list = section.querySelector('.glbc-entry-list');
@@ -191,24 +189,6 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
             button.setAttribute('aria-checked', String(previous));
             setStatus('保存失败，已恢复', 'error');
             console.error('[绿茵世界书控制器] 保存失败', error);
-        } finally {
-            button.disabled = false;
-        }
-    }
-
-    async function toggleGroup(button) {
-        const group = currentGroups.find(item => item.id === button.dataset.group);
-        if (!group?.unlockedUids?.length) return;
-        const enabled = button.dataset.enabled === 'true';
-        button.disabled = true;
-        setStatus(enabled ? '正在批量开启...' : '正在批量关闭...');
-        try {
-            await store.setStates(group.unlockedUids, enabled);
-            setStatus(enabled ? '分组已开启' : '分组已关闭');
-            await refreshDashboard(true);
-        } catch (error) {
-            setStatus('批量保存失败，请刷新后重试', 'error');
-            console.error('[绿茵世界书控制器] 批量保存失败', error);
         } finally {
             button.disabled = false;
         }
@@ -321,7 +301,6 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
         if (action === 'close') closePanel();
         else if (action === 'refresh') void refreshDashboard(true);
         else if (action === 'toggle') void toggleOne(actionNode);
-        else if (action === 'batch') void toggleGroup(actionNode);
         else if (action === 'group') {
             event.preventDefault();
             const group = actionNode.closest('.glbc-group');

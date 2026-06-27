@@ -9,9 +9,9 @@
 .glbc-title{min-width:0;flex:1}
 .glbc-title strong,.glbc-title span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .glbc-title span{color:var(--muted);font-size:12px}
-.glbc-icon-button,.glbc-action,.glbc-switch,.glbc-group-head{border:0;color:inherit;font:inherit;cursor:pointer}
+.glbc-icon-button,.glbc-switch,.glbc-group-head{border:0;color:inherit;font:inherit;cursor:pointer}
 .glbc-icon-button{width:38px;height:38px;border-radius:10px;background:transparent;font-size:20px}
-.glbc-icon-button:hover,.glbc-action:hover,.glbc-group-head:hover,.glbc-entry-row:hover{background:var(--hover)}
+.glbc-icon-button:hover,.glbc-group-head:hover,.glbc-entry-row:hover{background:var(--hover)}
 .glbc-body{min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
 .glbc-toolbar{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:8px;padding:12px 12px 8px}
 .glbc-search{width:100%;height:36px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:0 10px}
@@ -26,8 +26,7 @@
 .glbc-group[data-open=false]>.glbc-group-tools,.glbc-group[data-open=false]>.glbc-entry-list{display:none}
 .glbc-group-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}
 .glbc-group-tools span:first-child{min-width:min(240px,100%);flex:1}
-.glbc-action{min-height:30px;padding:0 10px;border-radius:8px;background:var(--hover)}
-.glbc-action:disabled,.glbc-switch:disabled{cursor:wait;opacity:.55}
+.glbc-switch:disabled{cursor:wait;opacity:.55}
 .glbc-entry-list{display:grid}
 .glbc-entry-row{min-height:44px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px;border-top:1px solid color-mix(in srgb,var(--border) 64%,transparent)}
 .glbc-entry-row[hidden]{display:none}
