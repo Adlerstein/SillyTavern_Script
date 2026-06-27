@@ -1,48 +1,41 @@
-export const BOOK_FILE = '绿茵好莱坞';
+export const BOOK_FILE = '足球';
 
-export const TREE = [
-    {
-        id: 'world', label: '绿茵世界树', icon: '树', color: '#22c55e', start: [20, '世界树开始'], end: [21, '世界树结束'],
-        children: [
-            {
-                id: 'timeline', label: '时间线', icon: '年', color: '#22c55e', start: [90, '时间线开始'], end: [99, '时间线结束'],
-                overview: [35, '时间线总览'],
-                children: [[100, '1998年'], [101, '1999年'], [102, '2000年'], [103, '2001年'], [104, '2002年'], [105, '2003年'], [106, '2004年'], [107, '2005年'], [108, '2006年']],
-            },
-            {
-                id: 'league', label: '联赛', icon: '赛', color: '#f59e0b', start: [190, '联赛开始'], end: [199, '联赛结束'],
-                overview: [30, '联赛总览'],
-                children: [[200, '英超'], [201, '德甲'], [202, '西甲'], [203, '意甲'], [204, '法甲'], [205, '欧冠'], [206, '国家队赛事']],
-            },
-            {
-                id: 'club', label: '俱乐部信息', icon: '俱', color: '#ef4444', start: [290, '俱乐部开始'], end: [299, '俱乐部结束'],
-                overview: [31, '重要俱乐部简表'],
-                children: [[300, '拜仁慕尼黑'], [301, '曼联'], [302, '皇家马德里'], [303, '巴塞罗那'], [304, 'AC米兰'], [305, '尤文图斯'], [306, '阿森纳'], [307, '切尔西']],
-            },
-            {
-                id: 'tactic', label: '战术', icon: '术', color: '#a855f7', start: [390, '战术开始'], end: [399, '战术结束'],
-                overview: [32, '战术总览'],
-                children: [[400, '传统442'], [401, '三中卫体系'], [402, '圣诞树/4312'], [403, '433/4231'], [404, '防守反击'], [405, '传控与高压']],
-            },
-            {
-                id: 'position', label: '球场位置', icon: '位', color: '#14b8a6', start: [490, '球场位置开始'], end: [499, '球场位置结束'],
-                overview: [33, '球场位置总览'],
-                extra: [[34, '青训与职业路径总览']],
-                children: [[500, '门将'], [501, '中后卫'], [502, '边后卫/翼卫'], [503, '后腰/中前卫'], [504, '前腰/边锋'], [505, '中锋']],
-            },
-            {
-                id: 'rules', label: '常开规则', icon: '规', color: '#60a5fa',
-                children: [],
-            },
-        ],
-    },
+export const GROUP_DEFINITIONS = [
+    { id: 'timeline', label: '时间线', description: '年份与足球大事记' },
+    { id: 'league', label: '赛事与战术演化', description: '联赛、杯赛、战术年代' },
+    { id: 'club', label: '俱乐部', description: '俱乐部资料' },
+    { id: 'career', label: '职业生涯', description: '合同、训练、转会、阶段规则' },
+    { id: 'position', label: '球场位置', description: '位置、职责、成长路径' },
+    { id: 'national', label: '国家队', description: '国家队与国际赛事身份' },
+    { id: 'city', label: '城市地点', description: '城市、地点、环境资料' },
+    { id: 'award', label: '荣誉奖项', description: '个人荣誉与奖项' },
+    { id: 'system', label: '系统与结构', description: 'MVU、世界树、总览、初始化和无前缀系统条目' },
+    { id: 'other', label: '其他内容', description: '未识别但带前缀的内容条目' },
 ];
 
+const GROUP_BY_PREFIX = new Map([
+    ['timeline', 'timeline'],
+    ['league', 'league'],
+    ['club', 'club'],
+    ['career', 'career'],
+    ['position', 'position'],
+    ['national', 'national'],
+    ['city', 'city'],
+    ['award', 'award'],
+    ['tree', 'system'],
+    ['overview', 'system'],
+    ['mvu_update', 'system'],
+    ['initvar', 'system'],
+]);
+
+const LOCKED_PREFIXES = new Set(['mvu_update', 'tree', 'overview', 'initvar']);
+
+export const TREE = [];
 export const MODULES = {
     timeline: { label: '时间线', prefix: '[timeline]', blueOrder: 51, greenOrder: 56 },
     rules: { label: '常开规则', prefix: '[rule]', blueOrder: 24, greenOrder: 26 },
-    league: { label: '联赛', prefix: '[league]', blueOrder: 61, greenOrder: 66 },
-    club: { label: '俱乐部信息', prefix: '[club]', blueOrder: 71, greenOrder: 76 },
+    league: { label: '赛事', prefix: '[league]', blueOrder: 61, greenOrder: 66 },
+    club: { label: '俱乐部', prefix: '[club]', blueOrder: 71, greenOrder: 76 },
     tactic: { label: '战术', prefix: '[tactic]', blueOrder: 81, greenOrder: 86 },
     position: { label: '球场位置', prefix: '[position]', blueOrder: 91, greenOrder: 96 },
     overview: { label: '世界树结构', prefix: '[overview]', blueOrder: 41, greenOrder: 46 },
@@ -61,6 +54,70 @@ export const subsectionModuleId = (parentModuleId, title) => {
 };
 export const isSectionModule = moduleId => /^section:\d+$/.test(String(moduleId ?? ''));
 export const isSubsectionModule = moduleId => /^(?:timeline|league|club|tactic|position|rules|overview|section:\d+):sub:/.test(String(moduleId ?? ''));
+
+export function entryUid(entry) {
+    return uidKey(entry?.uid ?? entry?.id);
+}
+
+export function entryPrefix(comment) {
+    const match = String(comment ?? '').match(/^\[([^\]]+)\]/);
+    return match ? match[1].trim() : '';
+}
+
+export function entryTitle(entry) {
+    const comment = String(entry?.comment ?? '').trim();
+    return comment.replace(/^\[[^\]]+\]/, '').trim() || comment || `#${entryUid(entry)}`;
+}
+
+export function isLockedEntry(entry) {
+    const prefix = entryPrefix(entry?.comment);
+    return !prefix || LOCKED_PREFIXES.has(prefix);
+}
+
+export function groupIdForEntry(entry) {
+    const prefix = entryPrefix(entry?.comment);
+    if (!prefix) return 'system';
+    return GROUP_BY_PREFIX.get(prefix) ?? 'other';
+}
+
+export function compareEntriesForDisplay(a, b) {
+    const displayA = Number(a?.displayIndex ?? a?.extensions?.display_index);
+    const displayB = Number(b?.displayIndex ?? b?.extensions?.display_index);
+    if (Number.isFinite(displayA) && Number.isFinite(displayB) && displayA !== displayB) return displayA - displayB;
+    if (Number.isFinite(displayA) !== Number.isFinite(displayB)) return Number.isFinite(displayA) ? -1 : 1;
+    const orderA = Number(a?.order ?? 0);
+    const orderB = Number(b?.order ?? 0);
+    if (orderA !== orderB) return orderA - orderB;
+    return Number(entryUid(a) || 0) - Number(entryUid(b) || 0);
+}
+
+export function deriveGroups(book) {
+    const definitions = new Map(GROUP_DEFINITIONS.map(group => [group.id, { ...group, entries: [] }]));
+    const entries = Object.values(book?.entries ?? {}).filter(entry => entryUid(entry));
+    for (const entry of entries) {
+        const groupId = groupIdForEntry(entry);
+        if (!definitions.has(groupId)) {
+            definitions.set(groupId, { id: groupId, label: groupId, description: '', entries: [] });
+        }
+        definitions.get(groupId).entries.push(entry);
+    }
+    return [...definitions.values()]
+        .map(group => {
+            const sortedEntries = group.entries.sort(compareEntriesForDisplay);
+            const unlockedEntries = sortedEntries.filter(entry => !isLockedEntry(entry));
+            const enabledCount = sortedEntries.filter(entry => entry.disable !== true).length;
+            return {
+                ...group,
+                entries: sortedEntries,
+                totalCount: sortedEntries.length,
+                enabledCount,
+                disabledCount: sortedEntries.length - enabledCount,
+                unlockedCount: unlockedEntries.length,
+                unlockedUids: unlockedEntries.map(entryUid),
+            };
+        })
+        .filter(group => group.entries.length > 0);
+}
 
 export function parseSubsectionModule(moduleId) {
     const match = String(moduleId ?? '').match(/^((?:timeline|league|club|tactic|position|rules|overview)|section:(\d+)):sub:(.+)$/);
@@ -136,26 +193,19 @@ export function nextUid(book) {
 }
 
 export function moduleFromComment(comment) {
-    const text = String(comment ?? '');
-    if (text.startsWith('[timeline]')) return 'timeline';
-    if (text.startsWith('[league]')) return 'league';
-    if (text.startsWith('[club]')) return 'club';
-    if (text.startsWith('[tactic]')) return 'tactic';
-    if (text.startsWith('[position]')) return 'position';
-    if (text.startsWith('[rule]') || text.startsWith('[rules]')) return 'rules';
-    if (text.startsWith('[overview]') || text.startsWith('[tree]')) return 'overview';
-    const sectionMatch = text.match(/^\[section:(\d+)\]/);
+    const prefix = entryPrefix(comment);
+    if (prefix === 'rule') return 'rules';
+    if (prefix === 'tree') return 'overview';
+    if (MODULES[prefix]) return prefix;
+    const sectionMatch = String(comment ?? '').match(/^\[section:(\d+)\]/);
     if (sectionMatch) return `section:${sectionMatch[1]}`;
-    if (text.startsWith('[section]')) return 'section';
+    if (prefix === 'section') return 'section';
     return 'rules';
 }
 
 export function nodeKind(entry) {
     if (!entry) return 'tag';
-    if (entry.constant && !entry.selective) {
-        const content = String(entry.content ?? '');
-        return /^<\/?[^>]+>$/.test(content.trim()) ? 'tag' : 'blue';
-    }
+    if (isLockedEntry(entry)) return 'tag';
     if (!entry.constant && entry.selective) return 'green';
     return 'blue';
 }
@@ -201,10 +251,9 @@ export function setEntryShape(entry, { uid, moduleId, kind, comment, content, ke
     const prefix = kind === 'section'
         ? MODULES.section.prefix
         : (isSectionModule(shapeModuleId) ? `[${shapeModuleId}]` : (MODULES[shapeModuleId]?.prefix ?? MODULES.rules.prefix));
-    const subsectionPrefix = '';
-    entry.comment = String(comment ?? '').startsWith(`${prefix}${subsectionPrefix}`)
+    entry.comment = String(comment ?? '').startsWith(prefix)
         ? comment
-        : `${prefix}${subsectionPrefix}${rawComment || '新资料节点'}`;
+        : `${prefix}${rawComment || '新资料节点'}`;
     entry.content = content;
     entry.constant = kind === 'blue' || kind === 'rule' || kind === 'section';
     entry.selective = kind === 'green';
