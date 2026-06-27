@@ -59,6 +59,16 @@ export function entryUid(entry) {
     return uidKey(entry?.uid ?? entry?.id);
 }
 
+export function setGroupOpen(group, open) {
+    if (!group) return;
+    const isOpen = Boolean(open);
+    group.dataset.open = String(isOpen);
+    group.querySelector?.('.glbc-group-head')?.setAttribute('aria-expanded', String(isOpen));
+    group.querySelectorAll?.('.glbc-group-tools,.glbc-entry-list').forEach(node => {
+        node.hidden = !isOpen;
+    });
+}
+
 export function entryPrefix(comment) {
     const match = String(comment ?? '').match(/^\[([^\]]+)\]/);
     return match ? match[1].trim() : '';

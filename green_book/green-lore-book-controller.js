@@ -1,5 +1,5 @@
 import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
-import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry } from './green-lore-book-controller-core.js?v=20260627-toggle1';
+import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle2';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -30,7 +30,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
         saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
     });
 
-    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle1', import.meta.url).href;
+    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle2', import.meta.url).href;
     const style = hostDocument.createElement('style');
     style.dataset.glbcOwner = scriptId;
     style.textContent = `@import url("${cssHref}");`;
@@ -119,10 +119,9 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
     function makeGroup(group, states) {
         const section = element('section', 'glbc-group');
         section.dataset.groupId = group.id;
-        section.dataset.open = 'true';
         const canBatch = group.unlockedCount > 0;
         section.innerHTML = `
-            <button class="glbc-group-head" type="button" data-action="group">
+            <button class="glbc-group-head" type="button" data-action="group" aria-expanded="false">
                 <span class="glbc-chevron">›</span>
                 <span class="glbc-group-title">${esc(group.label)}</span>
                 <span class="glbc-group-count">${group.enabledCount}/${group.totalCount} 开启</span>
@@ -137,6 +136,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
         group.entries.forEach(entry => {
             list.append(makeEntryRow(entry, states.get(entryUid(entry))));
         });
+        setGroupOpen(section, false);
         return section;
     }
 
@@ -156,7 +156,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
                 groupHasMatch ||= Boolean(visible);
             });
             group.hidden = !groupHasMatch;
-            if (groupHasMatch) group.dataset.open = 'true';
+            if (groupHasMatch) setGroupOpen(group, true);
         });
     }
 
@@ -315,7 +315,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
 
     root.addEventListener('click', event => {
         const target = event.target;
-        const actionNode = target.closest?.('[data-action]');
+        const actionNode = target?.closest?.('[data-action]') ?? target?.parentElement?.closest?.('[data-action]');
         if (!actionNode || !root.contains(actionNode)) return;
         const action = actionNode.dataset.action;
         if (action === 'close') closePanel();
@@ -323,10 +323,11 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
         else if (action === 'toggle') void toggleOne(actionNode);
         else if (action === 'batch') void toggleGroup(actionNode);
         else if (action === 'group') {
+            event.preventDefault();
             const group = actionNode.closest('.glbc-group');
-            if (group) group.dataset.open = String(group.dataset.open !== 'true');
+            if (group) setGroupOpen(group, group.dataset.open !== 'true');
         }
-    }, { signal: events.signal });
+    }, { signal: events.signal, capture: true });
 
     search.addEventListener('input', applySearch, { signal: events.signal });
 
