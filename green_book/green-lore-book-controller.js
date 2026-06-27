@@ -1,5 +1,7 @@
 import { createLoreBookStore } from '../drgon_book/lore-book-controller-store.js?v=20260624-store1';
-import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle5';
+import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLockedEntry, setGroupOpen } from './green-lore-book-controller-core.js?v=20260627-toggle6';
+
+const APP_VERSION = '20260627-toggle6';
 
 (function initGreenLoreBookController() {
     const hostWindow = window.parent ?? window;
@@ -30,7 +32,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
         saveWorldInfo: (...args) => getSaveWorldInfo()(...args),
     });
 
-    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle5', import.meta.url).href;
+    const cssHref = new URL('./green-lore-book-controller.css?v=20260627-toggle6', import.meta.url).href;
     const style = hostDocument.createElement('style');
     style.dataset.glbcOwner = scriptId;
     style.textContent = `@import url("${cssHref}");`;
@@ -53,7 +55,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
                 </div>
                 <div class="glbc-groups"></div>
             </main>
-            <footer class="glbc-footer"><span class="glbc-status">准备就绪</span><span>只保存条目开关，不改世界书结构</span></footer>
+            <footer class="glbc-footer"><span class="glbc-status">准备就绪</span><span>版本 ${APP_VERSION} · 只保存条目开关，不改世界书结构</span></footer>
         </section>`;
     hostDocument.body.append(root);
 
@@ -68,6 +70,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
     let wandRetryTimer;
     let wandRetryCount = 0;
     let currentGroups = [];
+    let currentStates = new Map();
 
     function element(tag, className, text) {
         const node = hostDocument.createElement(tag);
@@ -129,11 +132,23 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
                 <span>${esc(group.description || '')}</span>
                 <span>${group.disabledCount} 关闭 · ${group.unlockedCount} 可控</span>
             </div>`;
-        group.entries.forEach(entry => {
-            section.append(makeEntryRow(entry, states.get(entryUid(entry))));
-        });
         setGroupOpen(section, false);
         return section;
+    }
+
+    function removeGroupRows(groupElement) {
+        [...groupElement.children].forEach(child => {
+            if (child.classList?.contains('glbc-entry-row')) child.remove();
+        });
+    }
+
+    function renderGroupRows(groupElement) {
+        const group = currentGroups.find(item => item.id === groupElement.dataset.groupId);
+        if (!group) return;
+        removeGroupRows(groupElement);
+        group.entries.forEach(entry => {
+            groupElement.append(makeEntryRow(entry, currentStates.get(entryUid(entry))));
+        });
     }
 
     function applySearch() {
@@ -146,6 +161,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
         }
         groupsHost.querySelectorAll('.glbc-group').forEach(group => {
             let groupHasMatch = false;
+            renderGroupRows(group);
             group.querySelectorAll('.glbc-entry-row').forEach(row => {
                 const visible = row.dataset.search?.includes(query);
                 row.hidden = !visible;
@@ -163,6 +179,7 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
             currentGroups = deriveGroups(book);
             const uids = currentGroups.flatMap(group => group.entries.map(entryUid));
             const states = await store.getStates(uids, { force: false });
+            currentStates = states;
             groupsHost.replaceChildren(...currentGroups.map(group => makeGroup(group, states)));
             applySearch();
             setStatus('世界书开关已同步');
@@ -302,7 +319,17 @@ import { BOOK_FILE, deriveGroups, entryPrefix, entryTitle, entryUid, esc, isLock
         else if (action === 'group') {
             event.preventDefault();
             const group = actionNode.closest('.glbc-group');
-            if (group) setGroupOpen(group, group.dataset.open !== 'true');
+            if (group) {
+                const nextOpen = group.dataset.open !== 'true';
+                setGroupOpen(group, nextOpen);
+                if (nextOpen) {
+                    renderGroupRows(group);
+                    const renderedCount = group.querySelectorAll('.glbc-entry-row').length;
+                    setStatus(`已渲染 ${renderedCount} 个条目 · 版本 ${APP_VERSION}`);
+                } else {
+                    removeGroupRows(group);
+                }
+            }
         }
     }, { signal: events.signal, capture: true });
 
